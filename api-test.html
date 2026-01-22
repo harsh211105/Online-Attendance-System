@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        pre { background: #f0f0f0; padding: 10px; border-radius: 5px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>API Test</h1>
+    
+    <button onclick="testGetStudents()">Test Get All Students</button>
+    <button onclick="testGetStudent()">Test Get Student by Roll</button>
+    
+    <h2>Response:</h2>
+    <pre id="response">Click a button to test...</pre>
+
+    <script>
+        async function testGetStudents() {
+            try {
+                const response = await fetch('http://localhost:5000/api/students');
+                const data = await response.json();
+                document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('response').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function testGetStudent() {
+            try {
+                const roll = prompt('Enter roll number:');
+                if (!roll) return;
+                
+                const response = await fetch(`http://localhost:5000/api/students/${roll}`);
+                const data = await response.json();
+                document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('response').textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

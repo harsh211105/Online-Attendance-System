@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Smart Attendance System</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Face-api.js CDN -->
+    <script async defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="form-section">
+            <h1>Student Registration</h1>
+            
+            <form id="registrationForm">
+                <div class="form-group">
+                    <label for="studentName">Student Name:</label>
+                    <input 
+                        type="text" 
+                        id="studentName" 
+                        name="studentName" 
+                        placeholder="Enter your full name"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="rollNumber">Roll Number:</label>
+                    <input 
+                        type="text" 
+                        id="rollNumber" 
+                        name="rollNumber" 
+                        placeholder="Enter your roll number"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        placeholder="Create a password"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password:</label>
+                    <input 
+                        type="password" 
+                        id="confirmPassword" 
+                        name="confirmPassword" 
+                        placeholder="Confirm your password"
+                        required
+                    >
+                </div>
+
+                <div class="camera-section">
+                    <h3>Capture Your Photo</h3>
+                    <button type="button" id="startCameraButton" class="btn btn-secondary">
+                        Start Camera
+                    </button>
+                    <video id="cameraFeed" autoplay playsinline style="display: none;"></video>
+                    <button type="button" id="captureButton" class="btn btn-secondary" style="display: none;">
+                        Capture Photo
+                    </button>
+                    <button type="button" id="stopCameraButton" class="btn btn-secondary" style="display: none;">
+                        Stop Camera
+                    </button>
+                </div>
+
+                <canvas id="photoCanvas" style="display: none;"></canvas>
+                
+                <div id="photoPreview" class="photo-preview">
+                    <img id="capturedImage" src="" alt="Captured Photo" style="display: none;">
+                </div>
+
+                <div id="message" class="message"></div>
+
+                <button type="submit" class="btn btn-primary">Register</button>
+            </form>
+
+            <div class="auth-link">
+                <p>Already a student? <a href="login.html">Login here</a></p>
+            </div>
+
+            <div class="back-link">
+                <a href="index.html">← Back to Home</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        let capturedImageData = null;
+        let stream = null;
+        let cameraActive = false;
+        let modelsLoaded = false;
+
+        // Load face-api models
+        async function loadFaceApiModels() {
+            try {
+                console.log('Loading face-api models...');
+                
+                // Check if faceapi is loaded
+                if (typeof faceapi === 'undefined') {
+                    console.warn('face-api.js not loaded yet, retrying...');
+                    setTimeout(loadFaceApiModels, 500);
+                    return;
+                }
+
+                // Load models from CDN
+                const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+                
+                await Promise.all([
+                    faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                ]);
+
+                modelsLoaded = true;
+                console.log('✓ Face-api models loaded successfully');
+                
+                const messageDiv = document.getElementById('message');
+                messageDiv.className = 'message success';
+                messageDiv.textContent = 'Face recognition ready! Click "Start Camera" to capture your photo.';
+                
+            } catch (error) {
+                console.error('Error loading face-api models:', error);
+                const messageDiv = document.getElementById('message');
+                messageDiv.className = 'message warning';
+                messageDiv.textContent = 'Face recognition models loading... This may take a moment.';
+                
+                // Retry loading
+                setTimeout(loadFaceApiModels, 2000);
+            }
+        }
+
+        // Initialize camera only when user clicks "Start Camera" button
+        document.getElementById('startCameraButton').addEventListener('click', async function(e) {
+            e.preventDefault();
+            
+            try {
+                const video = document.getElementById('cameraFeed');
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'user',
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    } 
+                });
+                
+                video.srcObject = stream;
+                cameraActive = true;
+                
+                // Hide start button, show capture and stop buttons
+                document.getElementById('startCameraButton').style.display = 'none';
+                document.getElementById('captureButton').style.display = 'block';
+                document.getElementById('stopCameraButton').style.display = 'block';
+                video.style.display = 'block';
+                
+                const messageDiv = document.getElementById('message');
+                messageDiv.className = 'message success';
+                messageDiv.textContent = 'Camera started! Click "Capture Photo" to take a picture.';
+                
+            } catch (error) {
+                const messageDiv = document.getElementById('message');
+                messageDiv.className = 'message error';
+                messageDiv.textContent = 'Camera access denied. Please allow camera access to register.';
+                console.error('Camera error:', error);
+            }
+        });
+
+        // Capture photo
+        document.getElementById('captureButton').addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const video = document.getElementById('cameraFeed');
+            const canvas = document.getElementById('photoCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            capturedImageData = canvas.toDataURL('image/jpeg');
+            
+            const capturedImage = document.getElementById('capturedImage');
+            capturedImage.src = capturedImageData;
+            capturedImage.style.display = 'block';
+            
+            const messageDiv = document.getElementById('message');
+            messageDiv.className = 'message success';
+            messageDiv.textContent = 'Photo captured successfully!';
+        });
+
+        // Stop camera
+        document.getElementById('stopCameraButton').addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            
+            cameraActive = false;
+            
+            const video = document.getElementById('cameraFeed');
+            video.style.display = 'none';
+            
+            document.getElementById('startCameraButton').style.display = 'block';
+            document.getElementById('captureButton').style.display = 'none';
+            document.getElementById('stopCameraButton').style.display = 'none';
+            
+            const messageDiv = document.getElementById('message');
+            messageDiv.className = 'message';
+            messageDiv.textContent = '';
+        });
+
+        // Extract face descriptor from canvas image
+        async function extractFaceDescriptor(imageData) {
+            try {
+                // Check if face-api is loaded
+                if (typeof faceapi === 'undefined') {
+                    console.warn('Face-api not loaded yet');
+                    return null;
+                }
+
+                // Check if models are loaded
+                if (!modelsLoaded) {
+                    console.warn('Face-api models not loaded yet');
+                    return null;
+                }
+
+                // Create image element
+                const img = new Image();
+                img.src = imageData;
+                
+                // Wait for image to load
+                await new Promise((resolve) => {
+                    img.onload = resolve;
+                });
+
+                // Detect face and extract descriptor
+                const detection = await faceapi
+                    .detectSingleFace(img)
+                    .withFaceLandmarks()
+                    .withFaceDescriptor();
+
+                if (detection) {
+                    console.log('✓ Face detected and descriptor extracted');
+                    // Convert Float32Array to regular array for JSON storage
+                    return Array.from(detection.descriptor);
+                } else {
+                    console.warn('No face detected in image');
+                    return null;
+                }
+            } catch (error) {
+                console.error('Error extracting face descriptor:', error);
+                return null;
+            }
+        }
+
+        // Handle registration form submission
+        document.getElementById('registrationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const studentName = document.getElementById('studentName').value.trim();
+            const rollNumber = document.getElementById('rollNumber').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const messageDiv = document.getElementById('message');
+
+            // Validate passwords match
+            if (password !== confirmPassword) {
+                messageDiv.className = 'message error';
+                messageDiv.textContent = 'Passwords do not match!';
+                return;
+            }
+
+            // Check if photo was captured
+            if (!capturedImageData) {
+                messageDiv.className = 'message error';
+                messageDiv.textContent = 'Please capture a photo before registering!';
+                return;
+            }
+
+            // Show loading state
+            messageDiv.className = 'message';
+            messageDiv.textContent = 'Processing face... Please wait.';
+
+            // Extract face descriptor
+            const faceDescriptor = await extractFaceDescriptor(capturedImageData);
+            
+            if (!faceDescriptor) {
+                messageDiv.className = 'message warning';
+                messageDiv.textContent = 'Face not detected clearly. Continuing with registration (face verification will not be available).';
+            } else {
+                messageDiv.textContent = 'Registering student... Please wait.';
+            }
+
+            // Register student with face descriptor
+            const result = await AuthManager.register({
+                name: studentName,
+                roll: rollNumber,
+                password: password,
+                image: capturedImageData,
+                faceDescriptor: faceDescriptor ? JSON.stringify(faceDescriptor) : null
+            });
+
+            if (result.success) {
+                messageDiv.className = 'message success';
+                messageDiv.textContent = result.message;
+                
+                // Stop camera stream
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+                
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+            } else {
+                messageDiv.className = 'message error';
+                messageDiv.textContent = result.message;
+            }
+        });
+
+        // Clean up camera stream on page unload
+        window.addEventListener('beforeunload', function() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        });
+
+        // Initialize face-api models on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Registration page loaded, initializing face-api...');
+            loadFaceApiModels();
+        });
+
+        // In case DOMContentLoaded already fired
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                loadFaceApiModels();
+            });
+        } else {
+            loadFaceApiModels();
+        }
+    </script>
+</body>
+</html>

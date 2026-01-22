@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Verification - Smart Attendance System</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Face-api.js CDN -->
+    <script async defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"></script>
+    <style>
+        .face-verification-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .face-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .face-section h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .face-section p {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+
+        #cameraContainer {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto 20px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+        }
+
+        #faceVideo, #faceCanvas {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        #faceCanvas {
+            display: none;
+        }
+
+        .face-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .btn-face {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-start {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-start:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-verify {
+            background: #51cf66;
+            color: white;
+        }
+
+        .btn-verify:hover {
+            background: #40c057;
+            transform: translateY(-2px);
+        }
+
+        .btn-cancel {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-cancel:hover {
+            background: #ee5a52;
+            transform: translateY(-2px);
+        }
+
+        .retry-counter {
+            text-align: center;
+            color: #ff6b6b;
+            font-weight: 600;
+            margin: 15px 0;
+        }
+
+        .face-status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .face-status.detecting {
+            background: #e7f5ff;
+            color: #1864ab;
+        }
+
+        .face-status.success {
+            background: #d3f9d8;
+            color: #2f5233;
+        }
+
+        .face-status.error {
+            background: #ffe0e0;
+            color: #7d1d1d;
+        }
+
+        .face-status.info {
+            background: #fff3bf;
+            color: #7d6608;
+        }
+
+        .bypass-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid #e0e0e0;
+            text-align: center;
+        }
+
+        .bypass-section p {
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+        }
+
+        .btn-bypass {
+            background: #868e96;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-bypass:hover {
+            background: #748193;
+            transform: translateY(-2px);
+        }
+
+        .back-btn {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .back-btn:hover {
+            background: #dee2e6;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="face-verification-container">
+        <div class="face-section">
+            <h2>Face Verification</h2>
+            <p>Please position your face in the camera and click "Verify Face" to confirm your identity.</p>
+            
+            <div id="cameraContainer">
+                <video id="faceVideo" autoplay playsinline></video>
+                <canvas id="faceCanvas"></canvas>
+            </div>
+
+            <div class="face-controls">
+                <button id="startFaceBtn" class="btn-face btn-start">Start Camera</button>
+                <button id="verifyFaceBtn" class="btn-face btn-verify" style="display: none;">Verify Face</button>
+                <button id="cancelFaceBtn" class="btn-face btn-cancel" style="display: none;">Cancel</button>
+            </div>
+
+            <div id="faceStatus"></div>
+            <div id="retryCounter" class="retry-counter" style="display: none;"></div>
+
+            <div id="failedSection" style="display: none;">
+                <div class="face-controls">
+                    <button id="retryBtn" class="btn-face btn-verify">Retry Face Verification</button>
+                    <button id="backFromFailBtn" class="btn-face back-btn">Back to Login</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        let faceStream = null;
+        let storedFaceDescriptor = null;
+        let studentRoll = null;
+        let faceVerificationRetries = 3;
+        let modelsLoaded = false;
+        const MAX_RETRIES = 3;
+        const FACE_THRESHOLD = 0.6;
+
+        // Load face-api models
+        async function loadFaceApiModels() {
+            try {
+                console.log('Loading face-api models for verification...');
+                
+                // Check if faceapi is loaded
+                if (typeof faceapi === 'undefined') {
+                    console.warn('face-api.js not loaded yet, retrying...');
+                    setTimeout(loadFaceApiModels, 500);
+                    return;
+                }
+
+                // Load models from CDN
+                const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+                
+                await Promise.all([
+                    faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                ]);
+
+                modelsLoaded = true;
+                console.log('✓ Face-api models loaded successfully');
+                showFaceStatus('Models loaded. Click "Start Camera" to begin verification.', 'info');
+                
+            } catch (error) {
+                console.error('Error loading face-api models:', error);
+                showFaceStatus('Loading face recognition models... Please wait.', 'info');
+                
+                // Retry loading
+                setTimeout(loadFaceApiModels, 2000);
+            }
+        }
+
+        // Initialize page
+        async function initFaceVerification() {
+            // Get roll number from session
+            const currentUser = AuthManager.getCurrentUser();
+            if (!currentUser) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            studentRoll = currentUser.roll;
+            console.log('Starting face verification for:', studentRoll);
+
+            // Fetch stored face descriptor
+            const faceData = await AuthManager.getFaceDescriptor(studentRoll);
+            
+            if (!faceData.hasFaceDescriptor) {
+                showFaceStatus('No face descriptor found. Proceeding with login.', 'info');
+                setTimeout(() => {
+                    completeLogin();
+                }, 2000);
+                return;
+            }
+
+            storedFaceDescriptor = faceData.descriptor;
+            console.log('Stored face descriptor loaded');
+        }
+
+        // Show camera
+        document.getElementById('startFaceBtn').addEventListener('click', async function() {
+            try {
+                const video = document.getElementById('faceVideo');
+                faceStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'user',
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    }
+                });
+
+                video.srcObject = faceStream;
+                document.getElementById('startFaceBtn').style.display = 'none';
+                document.getElementById('verifyFaceBtn').style.display = 'block';
+                document.getElementById('cancelFaceBtn').style.display = 'block';
+                
+                showFaceStatus('Camera ready. Click "Verify Face" to check your identity.', 'info');
+            } catch (error) {
+                showFaceStatus('Camera access denied. Please allow camera permissions.', 'error');
+                console.error('Camera error:', error);
+            }
+        });
+
+        // Verify face
+        document.getElementById('verifyFaceBtn').addEventListener('click', async function() {
+            if (!storedFaceDescriptor) {
+                completeLogin();
+                return;
+            }
+
+            // Check if models are loaded
+            if (!modelsLoaded) {
+                showFaceStatus('Face recognition models still loading... Please wait.', 'error');
+                return;
+            }
+
+            try {
+                showFaceStatus('Detecting face... <span class="loading-spinner"></span>', 'detecting');
+                
+                const video = document.getElementById('faceVideo');
+                const canvas = document.getElementById('faceCanvas');
+                const ctx = canvas.getContext('2d');
+
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                // Detect face and extract descriptor
+                const detection = await faceapi
+                    .detectSingleFace(canvas)
+                    .withFaceLandmarks()
+                    .withFaceDescriptor();
+
+                if (!detection) {
+                    showFaceStatus('No face detected. Please position your face clearly in the camera.', 'error');
+                    return;
+                }
+
+                // Get current face descriptor
+                const liveDescriptor = Array.from(detection.descriptor);
+
+                // Compare faces
+                const match = AuthManager.faceMatch(storedFaceDescriptor, liveDescriptor, FACE_THRESHOLD);
+
+                if (match) {
+                    showFaceStatus('✓ Face verified successfully! Logging you in...', 'success');
+                    
+                    // Stop camera
+                    if (faceStream) {
+                        faceStream.getTracks().forEach(track => track.stop());
+                    }
+                    
+                    setTimeout(() => {
+                        completeLogin();
+                    }, 1500);
+                } else {
+                    faceVerificationRetries--;
+                    
+                    if (faceVerificationRetries > 0) {
+                        showFaceStatus('Face does not match. Please try again.', 'error');
+                        updateRetryCounter();
+                    } else {
+                        showFaceStatus('Face verification failed after 3 attempts.', 'error');
+                        document.getElementById('bypassSection').style.display = 'block';
+                        document.getElementById('verifyFaceBtn').style.display = 'none';
+                        document.getElementById('cancelFaceBtn').style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                showFaceStatus('Error during face verification: ' + error.message, 'error');
+                console.error('Face verification error:', error);
+            }
+        });
+
+        // Cancel verification
+        document.getElementById('cancelFaceBtn').addEventListener('click', function() {
+            if (faceStream) {
+                faceStream.getTracks().forEach(track => track.stop());
+            }
+            window.location.href = 'login.html';
+        });
+
+        // Retry button (after all retries exhausted)
+        document.getElementById('retryBtn').addEventListener('click', function() {
+            // Reset retries
+            faceVerificationRetries = MAX_RETRIES;
+            
+            // Reset UI
+            document.getElementById('failedSection').style.display = 'none';
+            document.getElementById('retryCounter').style.display = 'none';
+            document.getElementById('faceStatus').textContent = '';
+            
+            // Show camera controls again
+            document.getElementById('startFaceBtn').style.display = 'none';
+            document.getElementById('verifyFaceBtn').style.display = 'block';
+            document.getElementById('cancelFaceBtn').style.display = 'block';
+            
+            showFaceStatus('Ready to verify. Click "Verify Face" to try again.', 'info');
+        });
+
+        // Back from failed verification
+        document.getElementById('backFromFailBtn').addEventListener('click', function() {
+            if (faceStream) {
+                faceStream.getTracks().forEach(track => track.stop());
+            }
+            AuthManager.logout();
+            window.location.href = 'login.html';
+        });
+
+        function showFaceStatus(message, type) {
+            const statusDiv = document.getElementById('faceStatus');
+            statusDiv.className = `face-status ${type}`;
+            statusDiv.innerHTML = message;
+        }
+
+        function updateRetryCounter() {
+            const counter = document.getElementById('retryCounter');
+            counter.style.display = 'block';
+            counter.textContent = `Attempts remaining: ${faceVerificationRetries}/${MAX_RETRIES}`;
+        }
+
+        function completeLogin() {
+            // Store userType in session
+            sessionStorage.setItem('userType', 'student');
+            console.log('✓ Student login successful');
+            
+            // Redirect to student dashboard
+            window.location.href = 'student.html';
+        }
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', function() {
+            if (faceStream) {
+                faceStream.getTracks().forEach(track => track.stop());
+            }
+        });
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Face verification page loaded');
+            loadFaceApiModels();
+            initFaceVerification();
+        });
+
+        // In case DOMContentLoaded already fired
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                loadFaceApiModels();
+                initFaceVerification();
+            });
+        } else {
+            loadFaceApiModels();
+            initFaceVerification();
+        }
+    </script>
+</body>
+</html>

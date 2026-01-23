@@ -79,9 +79,9 @@ app.post('/api/register', async (req, res) => {
         });
       }
       
-      // Insert new student with face descriptor (approval_status: 0 = pending)
+      // Insert new student with face descriptor (approval_status: 1 = approved)
       await db.runAsync(
-        'INSERT INTO students (name, roll_number, password, image, face_descriptor, approval_status) VALUES (?, ?, ?, ?, ?, 0)',
+        'INSERT INTO students (name, roll_number, password, image, face_descriptor, approval_status) VALUES (?, ?, ?, ?, ?, 1)',
         [name, roll, password, image, faceDescriptor || null]
       );
       

@@ -175,7 +175,7 @@
         });
 
         // Capture photo
-        document.getElementById('captureButton').addEventListener('click', function(e) {
+        document.getElementById('captureButton').addEventListener('click', async function(e) {
             e.preventDefault();
             
             const video = document.getElementById('cameraFeed');
@@ -188,6 +188,12 @@
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             
             capturedImageData = canvas.toDataURL('image/jpeg');
+            
+            // IMPORTANT: Store the canvas for face detection later
+            // This ensures we use the exact same image for detection
+            window.capturedCanvas = canvas.cloneNode(true);
+            window.capturedCanvasCtx = window.capturedCanvas.getContext('2d');
+            window.capturedCanvasCtx.drawImage(canvas, 0, 0);
             
             const capturedImage = document.getElementById('capturedImage');
             capturedImage.src = capturedImageData;
@@ -223,43 +229,84 @@
         // Extract face descriptor from canvas image
         async function extractFaceDescriptor(imageData) {
             try {
+                console.log('===== EXTRACTING FACE DESCRIPTOR =====');
+                
                 // Check if face-api is loaded
                 if (typeof faceapi === 'undefined') {
-                    console.warn('Face-api not loaded yet');
+                    console.error('❌ Face-api not loaded yet');
                     return null;
                 }
 
                 // Check if models are loaded
                 if (!modelsLoaded) {
-                    console.warn('Face-api models not loaded yet');
+                    console.error('❌ Face-api models not loaded yet');
                     return null;
                 }
 
-                // Create image element
-                const img = new Image();
-                img.src = imageData;
-                
-                // Wait for image to load
-                await new Promise((resolve) => {
-                    img.onload = resolve;
-                });
+                console.log('✓ Face-api and models are ready');
 
-                // Detect face and extract descriptor
-                const detection = await faceapi
-                    .detectSingleFace(img)
+                // Use the canvas directly if available (more reliable than Image element)
+                let detectionSource;
+                if (window.capturedCanvas) {
+                    console.log('Using captured canvas for detection');
+                    detectionSource = window.capturedCanvas;
+                } else {
+                    console.log('Using Image element for detection (canvas not available)');
+                    // Fallback: Create image element
+                    const img = new Image();
+                    img.src = imageData;
+                    
+                    // Wait for image to load with timeout
+                    await new Promise((resolve, reject) => {
+                        img.onload = resolve;
+                        img.onerror = reject;
+                        setTimeout(() => reject(new Error('Image load timeout')), 5000);
+                    });
+                    
+                    detectionSource = img;
+                }
+
+                console.log('Detection source ready:', detectionSource.tagName || detectionSource.constructor.name);
+                console.log('Canvas/Image dimensions:', detectionSource.width, 'x', detectionSource.height);
+
+                // Detect face and extract descriptor with timeout
+                console.log('Starting face detection...');
+                
+                const detectionPromise = faceapi
+                    .detectSingleFace(detectionSource)
                     .withFaceLandmarks()
                     .withFaceDescriptor();
 
+                // Add timeout to detection
+                const timeoutPromise = new Promise((resolve) => {
+                    setTimeout(() => {
+                        console.warn('⚠️ Detection timeout - face-api taking too long');
+                        resolve(null);
+                    }, 10000); // 10 second timeout
+                });
+
+                const detection = await Promise.race([detectionPromise, timeoutPromise]);
+                
+                console.log('Detection result:', detection);
+
                 if (detection) {
                     console.log('✓ Face detected and descriptor extracted');
+                    console.log('Descriptor length:', detection.descriptor.length);
+                    console.log('Descriptor values (first 5):', Array.from(detection.descriptor).slice(0, 5));
+                    console.log('Detection confidence - score:', detection.detection.score);
+                    
                     // Convert Float32Array to regular array for JSON storage
-                    return Array.from(detection.descriptor);
+                    const descriptorArray = Array.from(detection.descriptor);
+                    console.log('✓ Converted to array, final length:', descriptorArray.length);
+                    return descriptorArray;
                 } else {
-                    console.warn('No face detected in image');
+                    console.warn('❌ No face detected in image');
                     return null;
                 }
             } catch (error) {
-                console.error('Error extracting face descriptor:', error);
+                console.error('❌ Error extracting face descriptor:', error);
+                console.error('Error message:', error.message);
+                console.error('Stack:', error.stack);
                 return null;
             }
         }
@@ -273,6 +320,11 @@
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
             const messageDiv = document.getElementById('message');
+
+            console.log('===== REGISTRATION FORM SUBMITTED =====');
+            console.log('Name:', studentName);
+            console.log('Roll:', rollNumber);
+            console.log('Photo captured:', !!capturedImageData);
 
             // Validate passwords match
             if (password !== confirmPassword) {
@@ -293,27 +345,99 @@
             messageDiv.textContent = 'Processing face... Please wait.';
 
             // Extract face descriptor
+            console.log('Extracting face descriptor...');
             const faceDescriptor = await extractFaceDescriptor(capturedImageData);
+            
+            console.log('Face descriptor extraction result:', faceDescriptor);
             
             if (!faceDescriptor) {
                 messageDiv.className = 'message warning';
-                messageDiv.textContent = 'Face not detected clearly. Continuing with registration (face verification will not be available).';
+                messageDiv.innerHTML = `
+                    <div style="margin-bottom: 15px;">
+                        ⚠️ <strong>Face not detected clearly.</strong>
+                    </div>
+                    <p style="margin: 10px 0; font-size: 0.9rem;">
+                        The system couldn't detect your face. This could be due to:
+                    </p>
+                    <ul style="margin: 10px 0; font-size: 0.9rem; text-align: left;">
+                        <li>Poor lighting conditions</li>
+                        <li>Face not clearly visible in the photo</li>
+                        <li>Face too small or at an angle</li>
+                    </ul>
+                    <p style="margin-top: 15px; font-size: 0.9rem;">
+                        You can:
+                    </p>
+                    <div style="margin-top: 10px;">
+                        <button id="retryPhotoBtn" class="btn btn-secondary" style="margin-right: 10px;">
+                            📷 Retake Photo
+                        </button>
+                        <button id="continueWithoutFaceBtn" class="btn btn-secondary">
+                            ✓ Continue Registration
+                        </button>
+                    </div>
+                `;
+                
+                console.warn('⚠️ Face descriptor is NULL - showing retry options');
+                
+                // Retry photo button
+                document.getElementById('retryPhotoBtn').addEventListener('click', function() {
+                    console.log('User chose to retake photo');
+                    
+                    // Reset UI to capture photo again
+                    document.getElementById('startCameraButton').style.display = 'block';
+                    document.getElementById('captureButton').style.display = 'none';
+                    document.getElementById('stopCameraButton').style.display = 'none';
+                    
+                    const video = document.getElementById('cameraFeed');
+                    video.style.display = 'none';
+                    
+                    capturedImageData = null;
+                    window.capturedCanvas = null;
+                    
+                    const capturedImage = document.getElementById('capturedImage');
+                    capturedImage.style.display = 'none';
+                    
+                    messageDiv.className = '';
+                    messageDiv.innerHTML = '';
+                    
+                    // Restart camera
+                    document.getElementById('startCameraButton').click();
+                });
+                
+                // Continue without face button
+                document.getElementById('continueWithoutFaceBtn').addEventListener('click', function() {
+                    console.log('User chose to continue without face verification');
+                    proceedWithRegistration(studentName, rollNumber, password, null, messageDiv);
+                });
+                
+                return;
             } else {
                 messageDiv.textContent = 'Registering student... Please wait.';
+                console.log('✓ Face descriptor obtained, length:', faceDescriptor.length);
             }
 
             // Register student with face descriptor
+            proceedWithRegistration(studentName, rollNumber, password, faceDescriptor, messageDiv);
+        });
+
+        // Helper function to proceed with registration
+        async function proceedWithRegistration(name, roll, password, faceDescriptor, messageDiv) {
+            console.log('Sending registration request...');
+            console.log('Face descriptor to send:', faceDescriptor ? `[array of ${faceDescriptor.length}]` : 'null');
+            
             const result = await AuthManager.register({
-                name: studentName,
-                roll: rollNumber,
+                name: name,
+                roll: roll,
                 password: password,
                 image: capturedImageData,
                 faceDescriptor: faceDescriptor ? JSON.stringify(faceDescriptor) : null
             });
 
+            console.log('Registration result:', result);
+
             if (result.success) {
                 messageDiv.className = 'message success';
-                messageDiv.textContent = result.message;
+                messageDiv.innerHTML = result.message;
                 
                 // Stop camera stream
                 if (stream) {
@@ -327,7 +451,7 @@
                 messageDiv.className = 'message error';
                 messageDiv.textContent = result.message;
             }
-        });
+        }
 
         // Clean up camera stream on page unload
         window.addEventListener('beforeunload', function() {

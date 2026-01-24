@@ -17,15 +17,8 @@ app.use(express.static('./'));
 // Initialize database tables
 async function initializeDatabase() {
   try {
-    // Drop old table if exists (for migration to new schema)
-    await new Promise((resolve) => {
-      db.run(`DROP TABLE IF EXISTS students`, (err) => {
-        if (err) console.log('No old table to drop');
-        resolve();
-      });
-    });
-
-    // Create students table with approval status
+    // Create students table with approval status (only if it doesn't exist)
+    // NOTE: Table is NOT dropped on restart to preserve student data
     await new Promise((resolve, reject) => {
       db.run(`
         CREATE TABLE IF NOT EXISTS students (
@@ -37,6 +30,25 @@ async function initializeDatabase() {
           face_descriptor TEXT,
           approval_status INTEGER DEFAULT 0,
           registered_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    // Create attendance table
+    await new Promise((resolve, reject) => {
+      db.run(`
+        CREATE TABLE IF NOT EXISTS attendance (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          student_roll TEXT NOT NULL,
+          attendance_date DATE NOT NULL,
+          period_number INTEGER NOT NULL,
+          status TEXT DEFAULT 'A',
+          marked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (student_roll) REFERENCES students(roll_number),
+          UNIQUE(student_roll, attendance_date, period_number)
         )
       `, (err) => {
         if (err) reject(err);
@@ -79,9 +91,9 @@ app.post('/api/register', async (req, res) => {
         });
       }
       
-      // Insert new student with face descriptor (approval_status: 1 = approved)
+      // Insert new student with face descriptor (approval_status: 0 = pending approval)
       await db.runAsync(
-        'INSERT INTO students (name, roll_number, password, image, face_descriptor, approval_status) VALUES (?, ?, ?, ?, ?, 1)',
+        'INSERT INTO students (name, roll_number, password, image, face_descriptor, approval_status) VALUES (?, ?, ?, ?, ?, 0)',
         [name, roll, password, image, faceDescriptor || null]
       );
       
@@ -137,22 +149,15 @@ app.post('/api/login', async (req, res) => {
       
       if (student.approval_status === 0) {
         // Pending approval
-        console.log('Approving rejection - status is 0 (pending)');
+        console.log('Waiting for admin approval - status is 0 (pending)');
         return res.status(403).json({ 
           success: false, 
           message: 'Waiting for admin approval',
           approvalStatus: 'pending'
         });
-      } else if (student.approval_status === -1) {
-        // Rejected
-        console.log('Student rejected - status is -1');
-        return res.status(403).json({ 
-          success: false, 
-          message: 'Your registration was rejected. Please register again.',
-          approvalStatus: 'rejected'
-        });
       }
       
+      // If approval_status = 1, student is approved and can proceed
       res.json({ 
         success: true, 
         message: `Welcome ${student.name}!`,
@@ -178,15 +183,15 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// 3. Get All Students (for viewing registered students)
+// 3. Get All Approved Students (for viewing registered students)
 app.get('/api/students', async (req, res) => {
   try {
-    console.log('Fetching all students...');
+    console.log('Fetching all approved students...');
     const students = await db.allAsync(
-      'SELECT id, name, roll_number, registered_at FROM students ORDER BY registered_at DESC'
+      'SELECT id, name, roll_number, registered_at FROM students WHERE approval_status = 1 ORDER BY registered_at DESC'
     );
     
-    console.log('Students found:', students.length);
+    console.log('Approved students found:', students.length);
     
     res.json({ 
       success: true, 
@@ -297,7 +302,7 @@ app.get('/api/student/:roll/face', async (req, res) => {
 app.get('/api/students/pending/list', async (req, res) => {
   try {
     const students = await db.allAsync(
-      'SELECT id, name, roll_number, registered_at, approval_status FROM students WHERE approval_status != 1 ORDER BY registered_at DESC'
+      'SELECT id, name, roll_number, registered_at, approval_status FROM students WHERE approval_status = 0 ORDER BY registered_at DESC'
     );
     
     res.json({ 
@@ -348,38 +353,126 @@ app.post('/api/student/:roll/approve', async (req, res) => {
   }
 });
 
-// 8. Reject student registration
+// 8. Reject student registration (DELETE from database)
 app.post('/api/student/:roll/reject', async (req, res) => {
   try {
     const { roll } = req.params;
+    
+    console.log('===== REJECT ENDPOINT CALLED =====');
+    console.log('Roll number to reject:', roll);
     
     const student = await db.getAsync(
       'SELECT id FROM students WHERE roll_number = ?',
       [roll]
     );
     
+    console.log('Student found:', student);
+    
     if (!student) {
+      console.error('❌ Student not found:', roll);
       return res.status(404).json({ 
         success: false, 
         message: 'Student not found' 
       });
     }
     
-    await db.runAsync(
-      'UPDATE students SET approval_status = -1 WHERE roll_number = ?',
+    console.log('About to DELETE student record...');
+    
+    // Delete the student record completely
+    const deleteResult = await db.runAsync(
+      'DELETE FROM students WHERE roll_number = ?',
       [roll]
     );
     
+    console.log('✓ Delete result:', deleteResult);
+    console.log(`✓ Student ${roll} rejected and deleted from database`);
+    
     res.json({ 
       success: true, 
-      message: `Student ${roll} rejected successfully!` 
+      message: `Student ${roll} rejected and removed from database. They must register again.` 
     });
   } catch (error) {
-    console.error('Error rejecting student:', error.message);
+    console.error('❌ Error rejecting student:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ 
       success: false, 
       message: 'Failed to reject student: ' + error.message 
     });
+  }
+});
+
+// ===== ATTENDANCE ENDPOINTS =====
+
+// 13. Get all approved students
+app.get('/api/attendance/students', async (req, res) => {
+  try {
+    const students = await db.allAsync(
+      'SELECT roll_number, name, image FROM students WHERE approval_status = 1 ORDER BY roll_number'
+    );
+    res.json(students);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 14. Get attendance for a specific day (only returns marked records, missing = absent)
+app.get('/api/attendance/day/:date', async (req, res) => {
+  try {
+    const { date } = req.params;
+    // Only fetch records that have been marked
+    const attendance = await db.allAsync(`
+      SELECT student_roll, attendance_date, period_number, status 
+      FROM attendance 
+      WHERE attendance_date = ?
+      ORDER BY period_number, student_roll
+    `, [date]);
+    
+    res.json(attendance);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 15. Mark/Update attendance for a student (only creates records when marked as Present)
+app.post('/api/attendance/mark', async (req, res) => {
+  try {
+    const { student_roll, attendance_date, period_number, status } = req.body;
+    
+    if (!student_roll || !attendance_date || !period_number || !status) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Check if student exists and is approved
+    const student = await db.getAsync(
+      'SELECT roll_number FROM students WHERE roll_number = ? AND approval_status = 1',
+      [student_roll]
+    );
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found or not approved' });
+    }
+
+    // Only store records when status is 'P' (Present)
+    // Delete records when status is 'A' (Absent) - missing records default to absent
+    if (status === 'P') {
+      // Insert or update attendance record for Present
+      await db.runAsync(`
+        INSERT INTO attendance (student_roll, attendance_date, period_number, status)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(student_roll, attendance_date, period_number) 
+        DO UPDATE SET status = 'P', marked_at = CURRENT_TIMESTAMP
+      `, [student_roll, attendance_date, period_number, status]);
+    } else if (status === 'A') {
+      // Delete attendance record for Absent (no need to store absent records)
+      await db.runAsync(
+        'DELETE FROM attendance WHERE student_roll = ? AND attendance_date = ? AND period_number = ?',
+        [student_roll, attendance_date, period_number]
+      );
+    }
+
+    res.json({ success: true, message: 'Attendance marked successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

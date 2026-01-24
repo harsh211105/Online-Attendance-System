@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance - Smart Attendance System</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: clamp(12px, 2vw, 16px);
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: clamp(1rem, 4vw, 2rem);
+        }
+
+        .attendance-container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Navbar */
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            padding: clamp(0.8rem, 2vw, 1.2rem);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: clamp(1.5rem, 3vw, 2.5rem);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: clamp(1rem, 2vw, 2rem);
+        }
+
+        .navbar h2 {
+            color: #333;
+            font-size: clamp(1.3rem, 3vw, 1.8rem);
+            margin: 0;
+        }
+
+        .navbar-links {
+            display: flex;
+            gap: clamp(0.5rem, 2vw, 1.5rem);
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            background: #667eea;
+            color: white;
+            padding: clamp(0.6rem, 1vw, 0.9rem) clamp(1rem, 2vw, 1.5rem);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: clamp(0.8rem, 1.5vw, 0.95rem);
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-block;
+        }
+
+        .nav-btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .nav-btn.logout {
+            background: #ff6b6b;
+        }
+
+        .nav-btn.logout:hover {
+            background: #ee5a52;
+        }
+
+        /* Week Controls */
+        .week-controls {
+            background: white;
+            padding: clamp(1rem, 2vw, 1.5rem);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: clamp(1.5rem, 3vw, 2rem);
+            display: flex;
+            gap: clamp(0.5rem, 2vw, 1.5rem);
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .week-controls label {
+            font-weight: 600;
+            color: #333;
+            font-size: clamp(0.85rem, 1.5vw, 1rem);
+        }
+
+        .week-controls input {
+            padding: clamp(0.5rem, 1vw, 0.8rem);
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-size: clamp(0.8rem, 1.5vw, 0.95rem);
+            font-family: inherit;
+        }
+
+        .week-controls button {
+            background: #667eea;
+            color: white;
+            padding: clamp(0.5rem, 1vw, 0.8rem) clamp(1rem, 2vw, 1.5rem);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: clamp(0.8rem, 1.5vw, 0.95rem);
+            transition: all 0.3s ease;
+        }
+
+        .week-controls button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .day-info {
+            color: #666;
+            font-weight: 500;
+            font-size: clamp(0.85rem, 1.5vw, 1rem);
+        }
+
+        /* Attendance Table */
+        .attendance-table-container {
+            background: white;
+            border-radius: 12px;
+            overflow: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        }
+
+        .attendance-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+        }
+
+        .attendance-table thead {
+            background: #f8f9fa;
+            position: sticky;
+            top: 0;
+        }
+
+        .attendance-table th {
+            padding: clamp(0.8rem, 1.5vw, 1.2rem);
+            text-align: center;
+            font-weight: 700;
+            color: #333;
+            border-bottom: 2px solid #e9ecef;
+            font-size: clamp(0.75rem, 1.3vw, 0.9rem);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .attendance-table th.student-col {
+            text-align: left;
+            position: sticky;
+            left: 0;
+            background: #f8f9fa;
+            z-index: 10;
+            min-width: 150px;
+        }
+
+        .attendance-table td {
+            padding: clamp(0.8rem, 1.5vw, 1.2rem);
+            border-bottom: 1px solid #e9ecef;
+            text-align: center;
+            font-size: clamp(0.75rem, 1.3vw, 0.9rem);
+        }
+
+        .attendance-table td.student-col {
+            text-align: left;
+            position: sticky;
+            left: 0;
+            background: white;
+            z-index: 5;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .attendance-table tbody tr:hover td.student-col {
+            background: #f8f9fa;
+        }
+
+        .attendance-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .attendance-cell {
+            cursor: pointer;
+            padding: clamp(0.6rem, 1.5vw, 1rem);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            font-weight: 700;
+            user-select: none;
+            font-size: clamp(0.9rem, 2vw, 1.1rem);
+        }
+
+        .attendance-cell.absent {
+            background: #ffebee;
+            color: #c62828;
+            border: 2px solid #ef5350;
+        }
+
+        .attendance-cell.present {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 2px solid #66bb6a;
+        }
+
+        .attendance-cell.absent:hover {
+            background: #ffcdd2;
+            transform: scale(1.08);
+        }
+
+        .attendance-cell.present:hover {
+            background: #c8e6c9;
+            transform: scale(1.08);
+        }
+
+        .period-header {
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .loading {
+            text-align: center;
+            padding: clamp(2rem, 5vw, 3rem);
+            color: white;
+            font-size: clamp(1rem, 2vw, 1.2rem);
+        }
+
+        .error {
+            background: #ffcdd2;
+            color: #c62828;
+            padding: clamp(1rem, 2vw, 1.5rem);
+            border-radius: 8px;
+            margin-bottom: clamp(1rem, 2vw, 1.5rem);
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .attendance-table th,
+            .attendance-table td {
+                padding: 0.6rem 0.4rem;
+                font-size: 0.75rem;
+            }
+
+            .week-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .week-controls input,
+            .week-controls button {
+                width: 100%;
+            }
+
+            .navbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .navbar-links {
+                justify-content: space-around;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="attendance-container">
+        <!-- Navbar -->
+        <div class="navbar">
+            <h2>Attendance</h2>
+            <div class="navbar-links">
+                <a href="attendance.html" class="nav-btn" style="background: #51cf66;">📋 Attendance</a>
+                <a href="dashboard.html" class="nav-btn">👥 Dashboard</a>
+                <button class="nav-btn logout" onclick="logout()">🚪 LOGOUT</button>
+            </div>
+        </div>
+
+        <!-- Week Controls -->
+        <div class="week-controls">
+            <label for="attendanceDate">Select Date:</label>
+            <input type="date" id="attendanceDate">
+            <button onclick="loadDayAttendance()">📅 Load Day</button>
+            <span class="day-info" id="dayInfo"></span>
+        </div>
+
+        <!-- Attendance Table -->
+        <div id="errorMsg" class="error" style="display: none;"></div>
+        <div id="loadingMsg" class="loading" style="display: none;">Loading attendance data...</div>
+        <div class="attendance-table-container" id="tableContainer" style="display: none;">
+            <table class="attendance-table" id="attendanceTable">
+                <thead>
+                    <tr id="headerRow">
+                        <th class="student-col">Student</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Period timings based on screenshot
+        const PERIODS = [
+            { num: 1, time: '9:00-9:50' },
+            { num: 2, time: '9:50-10:40' },
+            { num: 3, time: '10:40-11:30' },
+            { num: 4, time: '11:30-12:20' },
+            { num: 5, time: '1:00-1:50' },
+            { num: 6, time: '1:50-2:40' },
+            { num: 7, time: '2:40-3:30' }
+        ];
+
+        // Set default date to today
+        function setDefaultDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('attendanceDate').value = today;
+        }
+
+        // Get formatted day name and date
+        function getFormattedDate(dateStr) {
+            const date = new Date(dateStr);
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            return date.toLocaleDateString('en-US', options);
+        }
+
+        // Load attendance for a specific day
+        async function loadDayAttendance() {
+            const selectedDate = document.getElementById('attendanceDate').value;
+            
+            if (!selectedDate) {
+                showError('Please select a date');
+                return;
+            }
+
+            const loadingMsg = document.getElementById('loadingMsg');
+            const tableContainer = document.getElementById('tableContainer');
+            const errorMsg = document.getElementById('errorMsg');
+            const dayInfo = document.getElementById('dayInfo');
+
+            loadingMsg.style.display = 'block';
+            tableContainer.style.display = 'none';
+            errorMsg.style.display = 'none';
+
+            try {
+                // Fetch students
+                const studentsRes = await fetch('/api/attendance/students');
+                const students = await studentsRes.json();
+
+                // Fetch marked attendance for the day (missing records = absent)
+                const attendanceRes = await fetch(`/api/attendance/day/${selectedDate}`);
+                const markedAttendance = await attendanceRes.json();
+
+                // Build attendance map for quick lookup
+                const attendanceMap = {};
+                markedAttendance.forEach(record => {
+                    const key = `${record.student_roll}_${record.period_number}`;
+                    attendanceMap[key] = record.status;
+                });
+
+                // Build table for single day
+                buildDayAttendanceTable(students, selectedDate, attendanceMap);
+
+                dayInfo.textContent = getFormattedDate(selectedDate);
+                loadingMsg.style.display = 'none';
+                tableContainer.style.display = 'block';
+
+            } catch (error) {
+                showError('Error loading attendance: ' + error.message);
+                loadingMsg.style.display = 'none';
+            }
+        }
+
+        function buildDayAttendanceTable(students, selectedDate, attendanceMap) {
+            const headerRow = document.getElementById('headerRow');
+            const tableBody = document.getElementById('tableBody');
+
+            // Clear existing content
+            headerRow.innerHTML = '<th class="student-col">Student</th>';
+            tableBody.innerHTML = '';
+
+            // Add period headers
+            PERIODS.forEach(period => {
+                const th = document.createElement('th');
+                th.className = 'period-header';
+                th.textContent = `P${period.num}`;
+                th.title = period.time;
+                headerRow.appendChild(th);
+            });
+
+            // Build student rows
+            students.forEach(student => {
+                const row = document.createElement('tr');
+
+                // Student name cell
+                const studentCell = document.createElement('td');
+                studentCell.className = 'student-col';
+                studentCell.innerHTML = `<strong>${student.name}</strong><br><small>${student.roll_number}</small>`;
+                row.appendChild(studentCell);
+
+                // Attendance cells for each period
+                PERIODS.forEach(period => {
+                    const key = `${student.roll_number}_${period.num}`;
+                    const status = attendanceMap[key] || 'A';
+
+                    const cell = document.createElement('td');
+                    const cellDiv = document.createElement('div');
+                    cellDiv.className = `attendance-cell ${status === 'P' ? 'present' : 'absent'}`;
+                    cellDiv.textContent = status;
+                    cellDiv.onclick = () => toggleAttendance(student.roll_number, selectedDate, period.num, cellDiv);
+                    cellDiv.dataset.roll = student.roll_number;
+                    cellDiv.dataset.date = selectedDate;
+                    cellDiv.dataset.period = period.num;
+                    cellDiv.dataset.status = status;
+
+                    cell.appendChild(cellDiv);
+                    row.appendChild(cell);
+                });
+
+                tableBody.appendChild(row);
+            });
+        }
+
+        async function toggleAttendance(roll, date, period, cellElement) {
+            const currentStatus = cellElement.dataset.status;
+            const newStatus = currentStatus === 'A' ? 'P' : 'A';
+
+            try {
+                const response = await fetch('/api/attendance/mark', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        student_roll: roll,
+                        attendance_date: date,
+                        period_number: parseInt(period),
+                        status: newStatus
+                    })
+                });
+
+                if (response.ok) {
+                    // Update cell UI
+                    cellElement.textContent = newStatus;
+                    cellElement.dataset.status = newStatus;
+                    cellElement.classList.remove('absent', 'present');
+                    cellElement.classList.add(newStatus === 'P' ? 'present' : 'absent');
+                } else {
+                    showError('Failed to update attendance');
+                }
+            } catch (error) {
+                showError('Error updating attendance: ' + error.message);
+            }
+        }
+
+        function showError(message) {
+            const errorMsg = document.getElementById('errorMsg');
+            errorMsg.textContent = '⚠️ ' + message;
+            errorMsg.style.display = 'block';
+            setTimeout(() => {
+                errorMsg.style.display = 'none';
+            }, 5000);
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('currentUser');
+                window.location.href = 'login.html';
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            setDefaultDate();
+            loadDayAttendance();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Control - Smart Attendance System</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header h1 {
+            color: white;
+            font-size: 2rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .logout-btn {
+            background: #ff6b6b;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: #ee5a52;
+            transform: translateY(-2px);
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            margin-bottom: 2rem;
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .period-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .period-btn {
+            padding: 12px 16px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .period-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .period-btn.active {
+            background: #667eea;
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .period-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .window-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .window-info.active {
+            display: block;
+            border-left: 4px solid #51cf66;
+            background: #d3f9d8;
+        }
+
+        .window-info.closed {
+            display: block;
+            border-left: 4px solid #ff6b6b;
+            background: #ffe0e0;
+        }
+
+        .timer {
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            color: #667eea;
+        }
+
+        .timer.warning {
+            color: #ffd43b;
+        }
+
+        .timer.expired {
+            color: #ff6b6b;
+        }
+
+        .window-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            min-width: 150px;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-start {
+            background: #51cf66;
+            color: white;
+            box-shadow: 0 4px 12px rgba(81, 207, 102, 0.3);
+        }
+
+        .btn-start:hover:not(:disabled) {
+            background: #40c057;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(81, 207, 102, 0.4);
+        }
+
+        .btn-close {
+            background: #ff9c3b;
+            color: white;
+            box-shadow: 0 4px 12px rgba(255, 156, 59, 0.3);
+        }
+
+        .btn-close:hover:not(:disabled) {
+            background: #ee8332;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 156, 59, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .status-message {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        .status-message.success {
+            display: block;
+            background: #d3f9d8;
+            color: #2f5233;
+            border-left: 4px solid #51cf66;
+        }
+
+        .status-message.error {
+            display: block;
+            background: #ffe0e0;
+            color: #7d1d1d;
+            border-left: 4px solid #ff6b6b;
+        }
+
+        .status-message.info {
+            display: block;
+            background: #e7f5ff;
+            color: #1864ab;
+            border-left: 4px solid #1864ab;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .attendance-log {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 0.9rem;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-student {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .log-time {
+            color: #666;
+        }
+
+        .no-log {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+        }
+
+        .period-description {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem 0.5rem;
+            }
+
+            .container {
+                max-width: 100%;
+                margin: 0 auto;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+                margin: 0;
+            }
+
+            .logout-btn {
+                width: 100%;
+                padding: 12px 16px;
+            }
+
+            .card {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+
+            .card h2 {
+                font-size: 1.3rem;
+                margin-bottom: 1rem;
+            }
+
+            .card p {
+                font-size: 0.9rem;
+            }
+
+            .period-selector {
+                grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+                gap: 10px;
+            }
+
+            .period-btn {
+                padding: 10px 12px;
+                font-size: 0.85rem;
+            }
+
+            .timer {
+                font-size: 2rem;
+                margin: 15px 0;
+            }
+
+            .window-stats {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .stat-item {
+                padding: 12px;
+            }
+
+            .stat-label {
+                font-size: 0.8rem;
+            }
+
+            .stat-value {
+                font-size: 1.5rem;
+            }
+
+            .button-group {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .btn {
+                min-width: 100%;
+                padding: 14px 16px;
+                font-size: 0.9rem;
+            }
+
+            .window-info {
+                padding: 15px;
+            }
+
+            .attendance-log {
+                max-height: 300px;
+                padding: 12px;
+                margin-top: 15px;
+            }
+
+            .log-entry {
+                padding: 8px;
+                font-size: 0.85rem;
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .log-time {
+                font-size: 0.75rem;
+                color: #999;
+            }
+        }
+
+        /* Extra small screens (phones) */
+        @media (max-width: 480px) {
+            body {
+                padding: 0.75rem 0.25rem;
+            }
+
+            .container {
+                padding: 0;
+            }
+
+            .header {
+                padding: 0 0.5rem;
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+
+            .header h1 {
+                font-size: 1.2rem;
+            }
+
+            .header p {
+                font-size: 0.8rem;
+            }
+
+            .logout-btn {
+                width: 100%;
+                font-size: 0.8rem;
+                padding: 10px 12px;
+            }
+
+            .card {
+                padding: 12px;
+                margin-bottom: 12px;
+                border-radius: 8px;
+            }
+
+            .card h2 {
+                font-size: 1.1rem;
+                margin-bottom: 10px;
+            }
+
+            .period-selector {
+                grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+                gap: 8px;
+            }
+
+            .period-btn {
+                padding: 10px;
+                font-size: 0.8rem;
+                min-height: 44px;
+            }
+
+            .timer {
+                font-size: 1.8rem;
+                margin: 12px 0;
+                font-weight: 800;
+            }
+
+            .window-stats {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+
+            .stat-item {
+                padding: 10px;
+                min-height: 60px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+
+            .stat-label {
+                font-size: 0.75rem;
+            }
+
+            .stat-value {
+                font-size: 1.3rem;
+            }
+
+            .button-group {
+                flex-direction: column;
+                gap: 8px;
+                margin-top: 15px;
+            }
+
+            .btn {
+                width: 100%;
+                padding: 12px 12px;
+                font-size: 0.8rem;
+                min-height: 44px;
+                font-weight: 600;
+            }
+
+            .status-message {
+                padding: 12px;
+                font-size: 0.85rem;
+                margin: 10px 0;
+                border-radius: 6px;
+            }
+
+            .window-info {
+                padding: 12px;
+                border-radius: 6px;
+                margin-bottom: 15px;
+            }
+
+            .window-info p {
+                font-size: 0.85rem;
+                margin-bottom: 10px;
+            }
+
+            .attendance-log {
+                max-height: 250px;
+                padding: 10px;
+                margin-top: 12px;
+                border-radius: 6px;
+            }
+
+            .attendance-log h3 {
+                font-size: 0.9rem;
+                margin-bottom: 10px;
+            }
+
+            .log-entry {
+                padding: 8px 0;
+                font-size: 0.8rem;
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .log-student {
+                font-size: 0.8rem;
+            }
+
+            .log-time {
+                font-size: 0.7rem;
+            }
+
+            .no-log {
+                padding: 15px;
+                font-size: 0.85rem;
+            }
+
+            /* Ensure touch targets are at least 44x44px */
+            button, a {
+                min-height: 44px;
+                min-width: 44px;
+            }
+
+            /* Better spacing on mobile */
+            * {
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            /* Prevent zoom on input */
+            input, button, select, textarea {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>Attendance Control Panel</h1>
+                <p style="color: rgba(255,255,255,0.9); margin-top: 5px;">Manage attendance windows for your classes</p>
+            </div>
+            <button class="logout-btn" id="logoutBtn">Logout</button>
+        </div>
+
+        <div class="card">
+            <h2>Select Class Period</h2>
+            <p style="color: #666; margin-bottom: 15px;">Choose the period for which you want to start attendance:</p>
+            <div class="period-selector" id="periodSelector"></div>
+        </div>
+
+        <div class="card" id="controlCard" style="display: none;">
+            <h2 id="selectedPeriodTitle">Period 1 - 9:30 AM to 10:20 AM</h2>
+            
+            <div id="statusMessage" class="status-message"></div>
+
+            <div id="windowInfo" class="window-info">
+                <p style="margin-bottom: 15px;"><strong>Attendance Window is OPEN</strong></p>
+                <div class="timer" id="timer">05:00</div>
+                <p style="text-align: center; color: #666; font-size: 0.9rem;">
+                    Students have this much time left to log in
+                </p>
+                <div class="window-stats">
+                    <div class="stat-item">
+                        <div class="stat-label">Students Present</div>
+                        <div class="stat-value" id="presentCount">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Time Remaining</div>
+                        <div class="stat-value" id="timeRemaining">5:00</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-start" id="startBtn">Start Attendance Window</button>
+                <button class="btn btn-close" id="closeBtn" style="display: none;">Close Window (Early)</button>
+            </div>
+
+            <div class="attendance-log" id="attendanceLog" style="display: none;">
+                <h3 style="margin-bottom: 15px; color: #333;">Students Present During This Window:</h3>
+                <div id="logContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Define class periods
+        const periods = [
+            { num: 1, start: 9 * 60 + 30, end: 10 * 60 + 20, display: "9:30 AM - 10:20 AM" },
+            { num: 2, start: 10 * 60 + 20, end: 11 * 60 + 10, display: "10:20 AM - 11:10 AM" },
+            { num: 3, start: 11 * 60 + 10, end: 12 * 60, display: "11:10 AM - 12:00 PM" },
+            { num: 4, start: 12 * 60, end: 12 * 60 + 50, display: "12:00 PM - 12:50 PM" },
+            { num: 5, start: 13 * 60 + 40, end: 14 * 60 + 30, display: "1:40 PM - 2:30 PM" },
+            { num: 6, start: 14 * 60 + 30, end: 15 * 60 + 20, display: "2:30 PM - 3:20 PM" },
+            { num: 7, start: 15 * 60 + 20, end: 16 * 60 + 10, display: "3:20 PM - 4:10 PM" }
+        ];
+
+        let selectedPeriod = null;
+        let activeWindowId = null;
+        let timerInterval = null;
+        let logRefreshInterval = null;
+
+        // Initialize UI
+        function initUI() {
+            const selector = document.getElementById('periodSelector');
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const currentTime = hours * 60 + minutes; // Convert to minutes
+            
+            // Find current period
+            let currentPeriod = null;
+            for (const period of periods) {
+                if (currentTime >= period.start && currentTime < period.end) {
+                    currentPeriod = period.num;
+                    break;
+                }
+            }
+            
+            periods.forEach(period => {
+                const btn = document.createElement('button');
+                btn.className = 'period-btn';
+                btn.textContent = `Period ${period.num}`;
+                btn.dataset.period = period.num;
+                
+                // Disable if not current period
+                const isCurrentPeriod = period.num === currentPeriod;
+                btn.disabled = !isCurrentPeriod;
+                btn.title = isCurrentPeriod ? 
+                    `Current Period - Click to start` : 
+                    `Not available now (Available: ${period.display})`;
+                
+                btn.addEventListener('click', () => selectPeriod(period.num));
+                selector.appendChild(btn);
+            });
+            
+            // Show message if no current period
+            if (!currentPeriod) {
+                const msg = document.createElement('p');
+                msg.style.color = '#ff6b6b';
+                msg.style.textAlign = 'center';
+                msg.style.marginTop = '15px';
+                msg.textContent = '⏰ No class period is running now. Attendance window can only be opened during class hours.';
+                selector.parentElement.appendChild(msg);
+            }
+        }
+
+        // Select a period
+        function selectPeriod(periodNum) {
+            selectedPeriod = periodNum;
+            const period = periods[periodNum - 1];
+
+            // Update UI
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.period == periodNum);
+            });
+
+            // Show control card
+            document.getElementById('controlCard').style.display = 'block';
+            document.getElementById('selectedPeriodTitle').textContent = `Period ${periodNum} - ${period.display}`;
+            
+            // Reset UI
+            resetControlUI();
+            
+            // Check for existing window
+            checkExistingWindow();
+        }
+
+        // Reset control UI
+        function resetControlUI() {
+            document.getElementById('statusMessage').className = 'status-message';
+            document.getElementById('statusMessage').textContent = '';
+            document.getElementById('windowInfo').className = 'window-info';
+            document.getElementById('startBtn').style.display = 'block';
+            document.getElementById('closeBtn').style.display = 'none';
+            document.getElementById('attendanceLog').style.display = 'none';
+            clearInterval(timerInterval);
+            clearInterval(logRefreshInterval);
+            activeWindowId = null;
+        }
+
+        // Check if window already exists for this period
+        async function checkExistingWindow() {
+            try {
+                const response = await fetch(`/api/attendance-window/active/${selectedPeriod}`);
+                const data = await response.json();
+
+                if (data.success && data.window_active) {
+                    activeWindowId = data.window_id;
+                    showWindowActive(data.remaining_seconds);
+                    startTimerAndRefresh();
+                }
+            } catch (error) {
+                console.error('Error checking window:', error);
+            }
+        }
+
+        // Show window is active
+        function showWindowActive(remainingSeconds) {
+            document.getElementById('windowInfo').classList.add('active');
+            document.getElementById('statusMessage').className = 'status-message success';
+            document.getElementById('statusMessage').textContent = '✓ Attendance window is OPEN. Students can log in now.';
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('closeBtn').style.display = 'block';
+            document.getElementById('attendanceLog').style.display = 'block';
+            updateTimer(remainingSeconds);
+        }
+
+        // Start attendance window
+        document.getElementById('startBtn').addEventListener('click', async function() {
+            try {
+                const response = await fetch('/api/attendance-window/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        period_number: selectedPeriod,
+                        teacher_id: 'teacher_1' // Replace with actual teacher ID
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    activeWindowId = data.window_id;
+                    showWindowActive(300); // 5 minutes
+                    startTimerAndRefresh();
+                    showStatus('success', data.message);
+                } else {
+                    showStatus('error', data.error || 'Failed to start window');
+                }
+            } catch (error) {
+                console.error('Error starting window:', error);
+                showStatus('error', 'Failed to start attendance window');
+            }
+        });
+
+        // Close window early
+        document.getElementById('closeBtn').addEventListener('click', async function() {
+            if (!activeWindowId) return;
+
+            if (!confirm('Are you sure you want to close the attendance window early?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/attendance-window/close/${activeWindowId}`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showStatus('success', 'Attendance window closed.');
+                    resetControlUI();
+                } else {
+                    showStatus('error', 'Failed to close window');
+                }
+            } catch (error) {
+                console.error('Error closing window:', error);
+                showStatus('error', 'Failed to close window');
+            }
+        });
+
+        // Update timer
+        function updateTimer(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            const display = `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            
+            const timerEl = document.getElementById('timer');
+            timerEl.textContent = display;
+            timerEl.classList.remove('warning', 'expired');
+            
+            if (seconds <= 60) {
+                timerEl.classList.add('warning');
+            }
+            if (seconds <= 0) {
+                timerEl.classList.add('expired');
+            }
+
+            document.getElementById('timeRemaining').textContent = display;
+        }
+
+        // Start timer and refresh logs
+        function startTimerAndRefresh() {
+            let remainingSeconds = 300;
+
+            timerInterval = setInterval(async () => {
+                remainingSeconds--;
+                updateTimer(remainingSeconds);
+
+                if (remainingSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    document.getElementById('windowInfo').classList.remove('active');
+                    document.getElementById('windowInfo').classList.add('closed');
+                    document.getElementById('startBtn').style.display = 'block';
+                    document.getElementById('closeBtn').style.display = 'none';
+                    showStatus('info', 'Attendance window has closed automatically.');
+                    resetControlUI();
+                }
+            }, 1000);
+
+            // Refresh attendance log every 3 seconds
+            refreshAttendanceLog();
+            logRefreshInterval = setInterval(refreshAttendanceLog, 3000);
+        }
+
+        // Refresh attendance log
+        async function refreshAttendanceLog() {
+            if (!activeWindowId) return;
+
+            try {
+                const response = await fetch(`/api/attendance-window/${activeWindowId}/logs`);
+                const data = await response.json();
+
+                if (data.success) {
+                    const logContent = document.getElementById('logContent');
+                    const presentCount = document.getElementById('presentCount');
+
+                    if (data.data.length === 0) {
+                        logContent.innerHTML = '<div class="no-log">No students logged in yet</div>';
+                        presentCount.textContent = '0';
+                    } else {
+                        let html = '';
+                        data.data.forEach(log => {
+                            const time = new Date(log.logged_in_at).toLocaleTimeString();
+                            html += `
+                                <div class="log-entry">
+                                    <span class="log-student">${log.name} (${log.student_roll})</span>
+                                    <span class="log-time">${time}</span>
+                                </div>
+                            `;
+                        });
+                        logContent.innerHTML = html;
+                        presentCount.textContent = data.data.length;
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching logs:', error);
+            }
+        }
+
+        // Show status message
+        function showStatus(type, message) {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.className = `status-message ${type}`;
+            statusEl.textContent = message;
+        }
+
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            if (confirm('Are you sure you want to logout?')) {
+                sessionStorage.clear();
+                window.location.href = 'login.html';
+            }
+        });
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            initUI();
+        });
+    </script>
+</body>
+</html>

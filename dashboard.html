@@ -332,26 +332,190 @@
         }
 
         @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
             .dashboard-header {
                 flex-direction: column;
                 align-items: stretch;
+                gap: 1rem;
             }
 
             .dashboard-header h1 {
-                min-width: auto;
+                font-size: 1.5rem;
+                text-align: center;
             }
 
             .header-right {
-                justify-content: space-between;
+                flex-direction: column;
+                gap: 0.8rem;
+                justify-content: stretch;
+            }
+
+            .header-right a, .user-info, .logout-btn {
                 width: 100%;
+                text-align: center;
             }
 
             .stats-grid {
                 grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .stat-card {
+                padding: 1.2rem;
+                min-height: 120px;
+            }
+
+            .stat-card .number {
+                font-size: 2.2rem;
             }
 
             .students-section {
+                padding: 1.2rem;
+                overflow-x: auto;
+            }
+
+            .students-section h2 {
+                font-size: 1.3rem;
+                margin-bottom: 1rem;
+            }
+
+            .students-table {
+                min-width: 600px;
+            }
+
+            .students-table th,
+            .students-table td {
+                padding: 0.8rem;
+                font-size: 0.85rem;
+            }
+
+            .student-image {
+                width: 40px;
+                height: 40px;
+            }
+
+            .view-btn, .approve-btn, .reject-btn {
+                padding: 8px 12px;
+                font-size: 0.75rem;
+                min-height: 36px;
+            }
+
+            .modal-content {
+                width: 85%;
+                margin: 30vh auto;
+            }
+        }
+
+        @media (max-width: 480px) {
+            html {
+                font-size: 14px;
+            }
+
+            body {
+                padding: 0.75rem;
+                min-height: 100vh;
+            }
+
+            .dashboard-container {
+                max-width: 100%;
+            }
+
+            .dashboard-header {
+                flex-direction: column;
+                gap: 0.75rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .dashboard-header h1 {
+                font-size: 1.3rem;
+                text-align: center;
+                margin-bottom: 0.5rem;
+            }
+
+            .header-right {
+                flex-direction: column;
+                gap: 0.6rem;
+            }
+
+            .header-right a {
+                width: 100%;
+                padding: 10px 12px !important;
+                font-size: 0.75rem !important;
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .user-info {
+                width: 100%;
+                padding: 0.6rem !important;
+                font-size: 0.75rem;
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                white-space: normal;
+            }
+
+            .user-info strong {
+                display: block;
+            }
+
+            .logout-btn {
+                width: 100%;
+                padding: 10px 12px !important;
+                font-size: 0.75rem;
+                min-height: 44px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+
+            .stat-card {
                 padding: 1rem;
+                min-height: 100px;
+                border-radius: 12px;
+            }
+
+            .stat-card h3 {
+                font-size: 0.75rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .stat-card .number {
+                font-size: 1.8rem;
+            }
+
+            .students-section {
+                padding: 1rem 0.75rem;
+                margin-bottom: 1rem;
+            }
+
+            .students-section h2 {
+                font-size: 1.1rem;
+                margin-bottom: 0.75rem;
+                padding-bottom: 0.6rem;
+            }
+
+            .students-table {
+                min-width: 100%;
+                font-size: 0.75rem;
+            }
+
+            .students-table th {
+                padding: 0.6rem 0.4rem;
+                font-size: 0.7rem;
+            }
+
+            .students-table td {
+                padding: 0.6rem 0.4rem;
+                font-size: 0.75rem;
             }
 
             .student-image {
@@ -359,29 +523,99 @@
                 height: 35px;
             }
 
+            .student-image:hover {
+                transform: scale(1.1);
+            }
+
+            .view-btn, .approve-btn, .reject-btn {
+                padding: 6px 10px;
+                font-size: 0.65rem;
+                min-height: 40px;
+                min-width: 40px;
+            }
+
+            .approve-btn {
+                margin-right: 0.25rem;
+            }
+
+            .no-data, .loading {
+                padding: 1.5rem 0.75rem;
+                font-size: 0.85rem;
+            }
+
+            .modal {
+                z-index: 2000;
+            }
+
             .modal-content {
-                margin: 20vh auto;
+                width: 90%;
+                margin: 25vh auto;
+                padding: 1rem;
+                border-radius: 10px;
+            }
+
+            .modal-content img {
+                max-width: 250px;
+                margin-bottom: 1rem;
+            }
+
+            .modal-content h3 {
+                font-size: 1.1rem;
+                margin: 0.6rem 0;
+            }
+
+            .modal-content p {
+                font-size: 0.8rem;
+                margin: 0.4rem 0;
+            }
+
+            .close-btn {
+                padding: 10px 12px;
+                font-size: 0.8rem;
+                min-height: 44px;
+                margin-top: 0.8rem;
+            }
+
+            /* Touch-friendly */
+            button, a {
+                -webkit-tap-highlight-color: transparent;
+                min-height: 44px;
+                min-width: 44px;
+            }
+
+            /* Prevent zoom on input */
+            input, select, textarea {
+                font-size: 16px;
+            }
+
+            /* Better scrolling for tables */
+            .students-section {
+                -webkit-overflow-scrolling: touch;
             }
         }
 
-        @media (max-width: 480px) {
-            .students-table {
-                min-width: 500px;
+        @media (max-width: 360px) {
+            html {
+                font-size: 13px;
+            }
+
+            .dashboard-header h1 {
+                font-size: 1.1rem;
+            }
+
+            .header-right a {
+                font-size: 0.7rem !important;
+                padding: 8px 10px !important;
+            }
+
+            .stat-card .number {
+                font-size: 1.6rem;
             }
 
             .students-table th,
             .students-table td {
-                padding: 0.5rem;
-            }
-
-            .user-info {
+                padding: 0.4rem 0.2rem;
                 font-size: 0.7rem;
-                padding: 0.5rem 0.8rem;
-            }
-
-            .logout-btn {
-                font-size: 0.65rem;
-                padding: 0.5rem 0.8rem;
             }
         }
     </style>
@@ -393,6 +627,7 @@
             <h1>Dashboard</h1>
             <div class="header-right">
                 <a href="attendance.html" style="background: #667eea; color: white; padding: 12px 24px; border: none; border-radius: 20px; cursor: pointer; font-weight: 700; font-size: 0.9rem; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); text-transform: uppercase; letter-spacing: 0.5px; text-decoration: none; display: inline-block;" onmouseover="this.style.background='#5568d3'; this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.4)';" onmouseout="this.style.background='#667eea'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.3)';">📋 Attendance</a>
+                <a href="attendance-control.html" style="background: #51cf66; color: white; padding: 12px 24px; border: none; border-radius: 20px; cursor: pointer; font-weight: 700; font-size: 0.9rem; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(81, 207, 102, 0.3); text-transform: uppercase; letter-spacing: 0.5px; text-decoration: none; display: inline-block;" onmouseover="this.style.background='#40c057'; this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 20px rgba(81, 207, 102, 0.4)';" onmouseout="this.style.background='#51cf66'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(81, 207, 102, 0.3)';">⏱️ Start Attendance</a>
                 <div class="user-info" id="userInfo">
                     Loading user info...
                 </div>

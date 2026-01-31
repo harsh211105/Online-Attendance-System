@@ -251,58 +251,369 @@ video {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    body {
+        padding: 15px;
+    }
+
+    .container {
+        max-width: 100%;
+    }
+
     .welcome-section {
         padding: 40px 25px;
+        border-radius: 12px;
     }
 
     .welcome-section h1 {
         font-size: 1.8rem;
+        margin-bottom: 12px;
+    }
+
+    .welcome-section p {
+        font-size: 1rem;
+        margin-bottom: 30px;
     }
 
     .form-section {
         padding: 25px;
+        border-radius: 12px;
     }
 
     .form-section h1 {
         font-size: 1.5rem;
+        margin-bottom: 20px;
+    }
+
+    .form-section h3 {
+        font-size: 1.1rem;
+        margin: 20px 0 12px 0;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group label {
+        font-size: 0.95rem;
+        margin-bottom: 6px;
+    }
+
+    .form-group input {
+        padding: 12px;
+        font-size: 0.95rem;
+        min-height: 44px;
     }
 
     .button-group {
         flex-direction: column;
+        gap: 8px;
     }
 
     .btn {
         width: 100%;
+        padding: 12px 16px;
+        min-height: 44px;
+        font-size: 0.95rem;
+    }
+
+    .photo-preview {
+        margin: 15px 0;
+    }
+
+    .photo-preview img {
+        max-width: 100%;
+        max-height: 300px;
+    }
+
+    .camera-section {
+        padding: 15px;
+        border-radius: 8px;
     }
 
     video {
-        max-height: 400px;
+        max-height: 350px;
+        border-radius: 8px;
+    }
+
+    .message {
+        padding: 12px;
+        font-size: 0.9rem;
+        margin: 12px 0;
+        border-radius: 8px;
+    }
+
+    .auth-link, .back-link {
+        font-size: 0.95rem;
+        margin-top: 15px;
     }
 }
 
 @media (max-width: 480px) {
+    html {
+        font-size: 14px;
+    }
+
     body {
         padding: 10px;
+        min-height: 100vh;
+    }
+
+    .container {
+        max-width: 100%;
+        margin: 0;
     }
 
     .welcome-section {
-        padding: 30px 20px;
+        padding: 30px 18px;
+        border-radius: 10px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
     }
 
     .welcome-section h1 {
-        font-size: 1.5rem;
+        font-size: 1.4rem;
+        margin-bottom: 10px;
+    }
+
+    .welcome-section p {
+        font-size: 0.9rem;
+        margin-bottom: 25px;
     }
 
     .form-section {
-        padding: 20px;
+        padding: 18px;
+        border-radius: 10px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
     }
 
     .form-section h1 {
-        font-size: 1.3rem;
+        font-size: 1.2rem;
+        margin-bottom: 18px;
+        text-align: center;
+    }
+
+    .form-section h3 {
+        font-size: 1rem;
+        margin: 16px 0 10px 0;
+        font-weight: 700;
+    }
+
+    .form-group {
+        margin-bottom: 12px;
+    }
+
+    .form-group label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 5px;
+        color: #333;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 16px; /* Prevents iOS zoom */
+        min-height: 44px;
+        box-sizing: border-box;
+    }
+
+    .form-group input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+    }
+
+    .button-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 12px;
     }
 
     .btn {
-        padding: 12px 20px;
-        font-size: 1rem;
+        width: 100%;
+        padding: 10px 12px;
+        min-height: 44px;
+        font-size: 0.8rem;
+        border: none;
+        border-radius: 6px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .btn-primary {
+        background: #667eea;
+        color: white;
+    }
+
+    .btn-primary:active {
+        transform: scale(0.98);
+    }
+
+    .btn-secondary {
+        background: #f5f5f5;
+        color: #333;
+        border: 1px solid #ddd;
+    }
+
+    .btn-secondary:active {
+        background: #e9ecef;
+    }
+
+    .photo-preview {
+        margin: 12px 0;
+        text-align: center;
+    }
+
+    .photo-preview img {
+        max-width: 100%;
+        max-height: 250px;
+        border-radius: 8px;
+    }
+
+    .camera-section {
+        margin: 18px 0;
+        padding: 12px;
+        background: #f5f5f5;
+        border-radius: 8px;
+    }
+
+    video {
+        width: 100%;
+        max-height: 300px;
+        border-radius: 8px;
+        background: #000;
+    }
+
+    .message {
+        padding: 10px 12px;
+        margin: 10px 0;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        border-left: 3px solid #ddd;
+    }
+
+    .message.error {
+        background: #ffe0e0;
+        border-left-color: #ff6b6b;
+        color: #7d1d1d;
+    }
+
+    .message.success {
+        background: #d3f9d8;
+        border-left-color: #51cf66;
+        color: #2f5233;
+    }
+
+    .message.warning {
+        background: #fff3bf;
+        border-left-color: #ffd43b;
+        color: #7d6608;
+    }
+
+    .auth-link {
+        margin-top: 15px;
+        text-align: center;
+    }
+
+    .auth-link p {
+        font-size: 0.8rem;
+        color: #666;
+    }
+
+    .auth-link a {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .back-link {
+        margin-top: 12px;
+        text-align: center;
+    }
+
+    .back-link a {
+        font-size: 0.8rem;
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    /* Touch-friendly */
+    button, input, a {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Prevent zoom on inputs */
+    input, select, textarea {
+        font-size: 16px;
+    }
+
+    /* Better scrolling */
+    .students-table {
+        -webkit-overflow-scrolling: touch;
     }
 }
+
+@media (max-width: 360px) {
+    html {
+        font-size: 13px;
+    }
+
+    .welcome-section {
+        padding: 25px 15px;
+    }
+
+    .welcome-section h1 {
+        font-size: 1.2rem;
+    }
+
+    .form-section {
+        padding: 15px;
+    }
+
+    .form-section h1 {
+        font-size: 1.1rem;
+    }
+
+    .btn {
+        font-size: 0.75rem;
+        padding: 8px 10px;
+    }
+
+    .message {
+        font-size: 0.75rem;
+        padding: 8px 10px;
+    }
+}
+
+@media (max-width: 320px) {
+    html {
+        font-size: 12px;
+    }
+
+    body {
+        padding: 8px;
+    }
+
+    .form-section, .welcome-section {
+        padding: 12px;
+        border-radius: 8px;
+    }
+
+    .form-section h1, .welcome-section h1 {
+        font-size: 1rem;
+    }
+
+    .btn {
+        font-size: 0.7rem;
+        padding: 8px;
+        min-height: 40px;
+    }
+}
+

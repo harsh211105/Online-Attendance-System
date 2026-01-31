@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Face Verification - Smart Attendance System</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- Face-api.js CDN -->
-    <script async defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"></script>
+    <!-- Face-api.js - Served locally for offline support -->
+    <script async defer src="/face-api.min.js"></script>
     <style>
         .face-verification-container {
             max-width: 600px;
@@ -241,6 +241,169 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .face-verification-container {
+                max-width: 100%;
+                padding: 20px 12px;
+            }
+
+            .face-section {
+                padding: 20px;
+                border-radius: 10px;
+            }
+
+            .face-section h2 {
+                font-size: 1.3rem;
+                margin-bottom: 15px;
+            }
+
+            .face-section p {
+                font-size: 0.85rem;
+                margin-bottom: 20px;
+            }
+
+            #cameraContainer {
+                max-width: 100%;
+                margin: 0 auto 15px;
+                border: 2px solid #667eea;
+            }
+
+            .face-guide {
+                width: 200px;
+                height: 230px;
+                border-width: 2px;
+            }
+
+            .face-controls {
+                gap: 8px;
+                margin: 15px 0;
+            }
+
+            .btn-face {
+                padding: 12px 20px;
+                font-size: 0.85rem;
+                min-height: 44px;
+            }
+
+            .bypass-section {
+                margin-top: 20px;
+                padding-top: 20px;
+            }
+
+            .btn-bypass {
+                padding: 12px 18px;
+                min-height: 44px;
+            }
+
+            .retry-counter {
+                margin: 12px 0;
+                font-size: 0.9rem;
+            }
+
+            .face-status {
+                padding: 12px 14px;
+                margin: 12px 0;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .face-verification-container {
+                padding: 15px 10px;
+            }
+
+            .face-section {
+                padding: 15px;
+            }
+
+            .face-section h2 {
+                font-size: 1.1rem;
+                margin-bottom: 12px;
+            }
+
+            .face-section p {
+                font-size: 0.8rem;
+                margin-bottom: 15px;
+            }
+
+            #cameraContainer {
+                margin: 0 auto 12px;
+                max-width: 100%;
+            }
+
+            .face-guide {
+                width: 160px;
+                height: 190px;
+                border-width: 2px;
+            }
+
+            .face-controls {
+                gap: 6px;
+                margin: 12px 0;
+                flex-wrap: wrap;
+            }
+
+            .btn-face {
+                padding: 10px 14px;
+                font-size: 0.75rem;
+                min-height: 44px;
+                flex: 1;
+                min-width: 100px;
+            }
+
+            .bypass-section {
+                margin-top: 15px;
+                padding-top: 15px;
+            }
+
+            .bypass-section p {
+                font-size: 0.8rem;
+                margin-bottom: 12px;
+            }
+
+            .btn-bypass {
+                width: 100%;
+                padding: 10px 16px;
+                min-height: 44px;
+                font-size: 0.85rem;
+            }
+
+            .retry-counter {
+                font-size: 0.85rem;
+                margin: 10px 0;
+            }
+
+            .face-status {
+                padding: 10px 12px;
+                margin: 10px 0;
+                font-size: 0.8rem;
+                border-left-width: 3px;
+            }
+
+            .loading-spinner {
+                width: 18px;
+                height: 18px;
+                border-width: 2px;
+            }
+
+            /* Ensure buttons are touch-friendly */
+            button, a {
+                min-height: 44px;
+                min-width: 44px;
+            }
+
+            /* Prevent zoom on input focus */
+            input, select, textarea {
+                font-size: 16px;
+            }
+
+            /* Remove tap highlight */
+            * {
+                -webkit-tap-highlight-color: transparent;
+            }
+        }
     </style>
 </head>
 <body>
@@ -295,8 +458,8 @@
                     return;
                 }
 
-                // Load models from CDN
-                const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+                // Load models from local server (for offline support)
+                const MODEL_URL = '/models/';
                 
                 await Promise.all([
                     faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
@@ -549,9 +712,72 @@
             // Store userType in session
             sessionStorage.setItem('userType', 'student');
             console.log('✓ Student login successful');
+            console.log('studentRoll variable:', studentRoll);
             
-            // Redirect to student dashboard
-            window.location.href = 'student.html';
+            // Auto-mark attendance using the global studentRoll variable
+            if (studentRoll) {
+                markAttendance(studentRoll);
+            } else {
+                console.error('ERROR: studentRoll is not defined');
+                showFaceStatus('Error: Could not determine student roll. Redirecting...', 'error');
+                setTimeout(() => {
+                    window.location.href = 'student-dashboard.html';
+                }, 2000);
+            }
+        }
+
+        // Auto-mark attendance on successful login
+        async function markAttendance(studentRoll) {
+            try {
+                console.log('Calling auto-mark attendance for roll:', studentRoll);
+                
+                const response = await fetch('/api/attendance/auto-mark', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ student_roll: studentRoll })
+                });
+
+                const data = await response.json();
+                console.log('Auto-mark response:', data);
+
+                if (response.ok) {
+                    // Attendance marked successfully
+                    console.log('✓ Attendance marked successfully');
+                    showFaceStatus(`✓ ${data.message}`, 'success');
+                    setTimeout(() => {
+                        console.log('Redirecting to student-dashboard.html');
+                        window.location.href = 'student-dashboard.html';
+                    }, 2000);
+                } else {
+                    // Error marking attendance - but still redirect
+                    console.log('Attendance marking failed:', data);
+                    
+                    if (data.outside_hours) {
+                        showFaceStatus('❌ Attendance can only be marked during class periods. But login successful!', 'info');
+                    } else if (data.already_marked) {
+                        showFaceStatus('✓ You are already marked present for this period!', 'success');
+                    } else if (data.window_closed) {
+                        // NEW: Handle attendance window closed
+                        showFaceStatus('❌ Attendance window is closed for this period. Your face has been verified but attendance could not be marked. Please contact your teacher.', 'error');
+                        console.warn('SECURITY: Attendance window was closed when student tried to log in');
+                    } else {
+                        showFaceStatus(`⚠️ ${data.error}`, 'info');
+                    }
+                    
+                    // Still redirect after showing message
+                    setTimeout(() => {
+                        console.log('Redirecting to student-dashboard.html despite attendance error');
+                        window.location.href = 'student-dashboard.html';
+                    }, 3000);
+                }
+            } catch (error) {
+                console.error('Attendance marking error:', error);
+                showFaceStatus('Login successful. Redirecting to dashboard...', 'success');
+                setTimeout(() => {
+                    console.log('Redirecting to student-dashboard.html after error');
+                    window.location.href = 'student-dashboard.html';
+                }, 2000);
+            }
         }
 
         // Clean up on page unload

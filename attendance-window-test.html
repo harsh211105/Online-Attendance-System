@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test - Attendance Window</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px 5px 5px 0;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        .output {
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            border: 1px solid #ddd;
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success { color: #51cf66; font-weight: bold; }
+        .error { color: #ff6b6b; font-weight: bold; }
+        .info { color: #667eea; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Attendance Window API Tests</h1>
+
+    <div class="test-section">
+        <h3>Test 1: Start Attendance Window</h3>
+        <p>Start a 5-minute attendance window for Period 2</p>
+        <button onclick="testStartWindow()">Start Window (Period 2)</button>
+        <div class="output" id="output1"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 2: Check Active Window</h3>
+        <p>Check if there's an active window for Period 2</p>
+        <button onclick="testCheckWindow()">Check Active Window</button>
+        <div class="output" id="output2"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 3: Auto-Mark Attendance (Should succeed during window)</h3>
+        <p>Simulate student login during active window</p>
+        <button onclick="testMarkAttendance()">Mark Attendance</button>
+        <div class="output" id="output3"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 4: Get Attendance Logs</h3>
+        <p>View who logged in during the window</p>
+        <button onclick="testGetLogs()">Get Logs</button>
+        <div class="output" id="output4"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 5: Close Window Early</h3>
+        <p>Close the attendance window prematurely</p>
+        <button onclick="testCloseWindow()">Close Window</button>
+        <div class="output" id="output5"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 6: Auto-Mark After Closing (Should fail)</h3>
+        <p>Try to mark attendance after window is closed</p>
+        <button onclick="testMarkAfterClose()">Mark After Close</button>
+        <div class="output" id="output6"></div>
+    </div>
+
+    <script>
+        let windowId = null;
+        let currentPeriod = 2;
+
+        function logOutput(elementId, message, type = 'info') {
+            const output = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'success' ? '✓' : type === 'error' ? '✗' : 'ℹ';
+            const line = `[${timestamp}] ${prefix} ${message}\n`;
+            output.textContent += line;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        async function testStartWindow() {
+            const output = 'output1';
+            try {
+                logOutput(output, 'Sending request to start window...', 'info');
+                const response = await fetch('/api/attendance-window/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        period_number: currentPeriod,
+                        teacher_id: 'test_teacher'
+                    })
+                });
+
+                const data = await response.json();
+                logOutput(output, `Status: ${response.status}`, 'info');
+                logOutput(output, JSON.stringify(data, null, 2), data.success ? 'success' : 'error');
+                
+                if (data.success) {
+                    windowId = data.window_id;
+                    logOutput(output, `Window ID saved: ${windowId}`, 'success');
+                }
+            } catch (error) {
+                logOutput(output, `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testCheckWindow() {
+            const output = 'output2';
+            try {
+                logOutput(output, `Checking active window for period ${currentPeriod}...`, 'info');
+                const response = await fetch(`/api/attendance-window/active/${currentPeriod}`);
+                const data = await response.json();
+                logOutput(output, `Status: ${response.status}`, 'info');
+                logOutput(output, JSON.stringify(data, null, 2), data.success ? 'success' : 'error');
+            } catch (error) {
+                logOutput(output, `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testMarkAttendance() {
+            const output = 'output3';
+            try {
+                logOutput(output, 'Simulating student login during window...', 'info');
+                const response = await fetch('/api/attendance/auto-mark', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ student_roll: 'TEST001' })
+                });
+
+                const data = await response.json();
+                logOutput(output, `Status: ${response.status}`, 'info');
+                logOutput(output, JSON.stringify(data, null, 2), response.ok ? 'success' : 'error');
+            } catch (error) {
+                logOutput(output, `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testGetLogs() {
+            const output = 'output4';
+            try {
+                if (!windowId) {
+                    logOutput(output, 'Window ID not set. Start a window first.', 'error');
+                    return;
+                }
+                logOutput(output, `Fetching logs for window ${windowId}...`, 'info');
+                const response = await fetch(`/api/attendance-window/${windowId}/logs`);
+                const data = await response.json();
+                logOutput(output, `Status: ${response.status}`, 'info');
+                logOutput(output, JSON.stringify(data, null, 2), 'success');
+            } catch (error) {
+                logOutput(output, `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testCloseWindow() {
+            const output = 'output5';
+            try {
+                if (!windowId) {
+                    logOutput(output, 'Window ID not set. Start a window first.', 'error');
+                    return;
+                }
+                logOutput(output, `Closing window ${windowId}...`, 'info');
+                const response = await fetch(`/api/attendance-window/close/${windowId}`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+                logOutput(output, `Status: ${response.status}`, 'info');
+                logOutput(output, JSON.stringify(data, null, 2), data.success ? 'success' : 'error');
+            } catch (error) {
+                logOutput(output, `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testMarkAfterClose() {
+            const output = 'output6';
+            try {
+                logOutput(output, 'Attempting to mark attendance after window closed...', 'info');
+                const response = await fetch('/api/attendance/auto-mark', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ student_roll: 'TEST002' })
+                });
+
+                const data = await response.json();
+                logOutput(output, `Status: ${response.status}`, 'info');
+                logOutput(output, JSON.stringify(data, null, 2), response.ok ? 'success' : 'error');
+                
+                if (data.window_closed) {
+                    logOutput(output, 'EXPECTED: Window closed error received', 'success');
+                }
+            } catch (error) {
+                logOutput(output, `Error: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

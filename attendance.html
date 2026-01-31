@@ -254,29 +254,250 @@
         }
 
         @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .attendance-container {
+                max-width: 100%;
+            }
+
+            .navbar {
+                flex-direction: column;
+                gap: 0.8rem;
+                padding: 1rem;
+            }
+
+            .navbar h2 {
+                font-size: 1.4rem;
+                text-align: center;
+            }
+
+            .navbar-links {
+                flex-direction: column;
+                gap: 0.6rem;
+            }
+
+            .nav-btn {
+                width: 100%;
+                padding: 10px 12px;
+                min-height: 44px;
+                text-align: center;
+            }
+
+            .week-controls {
+                flex-direction: column;
+                gap: 0.8rem;
+                padding: 1rem;
+            }
+
+            .week-controls label {
+                font-size: 0.9rem;
+            }
+
+            .week-controls input,
+            .week-controls button {
+                width: 100%;
+                padding: 10px 12px;
+                min-height: 44px;
+            }
+
+            .day-info {
+                text-align: center;
+                font-size: 0.85rem;
+            }
+
+            .attendance-table {
+                min-width: 100%;
+            }
+
             .attendance-table th,
             .attendance-table td {
                 padding: 0.6rem 0.4rem;
                 font-size: 0.75rem;
             }
 
-            .week-controls {
-                flex-direction: column;
-                align-items: stretch;
+            .attendance-cell {
+                padding: 0.5rem 0.3rem;
+                font-size: 0.85rem;
             }
 
-            .week-controls input,
-            .week-controls button {
-                width: 100%;
+            .error {
+                padding: 1rem;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            html {
+                font-size: 13px;
+            }
+
+            body {
+                padding: 0.75rem;
+            }
+
+            .attendance-container {
+                max-width: 100%;
             }
 
             .navbar {
                 flex-direction: column;
-                align-items: stretch;
+                gap: 0.6rem;
+                padding: 0.8rem;
+                border-radius: 10px;
+                margin-bottom: 1rem;
+            }
+
+            .navbar h2 {
+                font-size: 1.2rem;
+                text-align: center;
+                margin: 0;
             }
 
             .navbar-links {
-                justify-content: space-around;
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }
+
+            .nav-btn {
+                padding: 8px 10px;
+                min-height: 44px;
+                font-size: 0.75rem;
+                border-radius: 6px;
+                text-align: center;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .week-controls {
+                flex-direction: column;
+                gap: 0.6rem;
+                padding: 0.8rem;
+                border-radius: 10px;
+                margin-bottom: 1rem;
+            }
+
+            .week-controls label {
+                font-size: 0.8rem;
+                font-weight: 600;
+            }
+
+            .week-controls input {
+                width: 100%;
+                padding: 8px 10px;
+                font-size: 14px; /* Prevent zoom */
+                min-height: 44px;
+                border-radius: 6px;
+            }
+
+            .week-controls button {
+                width: 100%;
+                padding: 8px 10px;
+                min-height: 44px;
+                font-size: 0.75rem;
+                border-radius: 6px;
+            }
+
+            .day-info {
+                text-align: center;
+                font-size: 0.75rem;
+                padding: 0.5rem 0;
+            }
+
+            .attendance-table-container {
+                border-radius: 10px;
+                margin-bottom: 1.5rem;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .attendance-table {
+                min-width: 500px;
+                font-size: 0.75rem;
+            }
+
+            .attendance-table th {
+                padding: 0.5rem 0.3rem;
+                font-size: 0.7rem;
+                text-align: center;
+            }
+
+            .attendance-table th.student-col {
+                min-width: 120px;
+                text-align: left;
+            }
+
+            .attendance-table td {
+                padding: 0.4rem 0.2rem;
+                font-size: 0.7rem;
+            }
+
+            .attendance-table td.student-col {
+                min-width: 120px;
+                text-align: left;
+                font-size: 0.75rem;
+            }
+
+            .attendance-cell {
+                padding: 0.4rem 0.2rem;
+                font-size: 0.7rem;
+                border-width: 1px;
+                cursor: pointer;
+                user-select: none;
+            }
+
+            .attendance-cell:active {
+                transform: scale(0.98);
+            }
+
+            .error {
+                padding: 0.75rem;
+                font-size: 0.75rem;
+                border-radius: 6px;
+                margin-bottom: 0.75rem;
+            }
+
+            .loading {
+                padding: 1.5rem 0.75rem;
+                font-size: 0.85rem;
+            }
+
+            /* Touch friendly */
+            button, a, input {
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            /* Prevent zoom */
+            input {
+                font-size: 16px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .navbar h2 {
+                font-size: 1rem;
+            }
+
+            .nav-btn {
+                font-size: 0.65rem;
+                padding: 6px 8px;
+            }
+
+            .attendance-table {
+                min-width: 400px;
+            }
+
+            .attendance-table th,
+            .attendance-table td {
+                padding: 0.3rem 0.2rem;
+            }
+
+            .attendance-cell {
+                padding: 0.3rem;
+                font-size: 0.65rem;
             }
         }
     </style>
@@ -319,15 +540,15 @@
 
     <script src="app.js"></script>
     <script>
-        // Period timings based on screenshot
+        // Period timings
         const PERIODS = [
-            { num: 1, time: '9:00-9:50' },
-            { num: 2, time: '9:50-10:40' },
-            { num: 3, time: '10:40-11:30' },
-            { num: 4, time: '11:30-12:20' },
-            { num: 5, time: '1:00-1:50' },
-            { num: 6, time: '1:50-2:40' },
-            { num: 7, time: '2:40-3:30' }
+            { num: 1, time: '9:30-10:20' },
+            { num: 2, time: '10:20-11:10' },
+            { num: 3, time: '11:10-12:00' },
+            { num: 4, time: '12:00-12:50' },
+            { num: 5, time: '1:40-2:30' },
+            { num: 6, time: '2:30-3:20' },
+            { num: 7, time: '3:20-4:10' }
         ];
 
         // Set default date to today

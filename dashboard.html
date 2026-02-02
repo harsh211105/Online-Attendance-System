@@ -832,7 +832,7 @@
         async function loadStudents() {
             try {
                 console.log('Fetching approved students...');
-                const response = await fetch('http://localhost:5000/api/students');
+                const response = await fetch(`${API_URL}/students`);
                 console.log('Response status:', response.status);
                 
                 const data = await response.json();
@@ -867,9 +867,16 @@
                         <tbody>
                 `;
 
-                for (const student of students) {
+                // Fetch all images in parallel for better performance on mobile
+                const imagePromises = students.map(student => 
+                    getStudentImage(student.roll_number).catch(() => '')
+                );
+                const allImages = await Promise.all(imagePromises);
+
+                for (let i = 0; i < students.length; i++) {
+                    const student = students[i];
                     const date = new Date(student.registered_at).toLocaleDateString();
-                    const imageData = await getStudentImage(student.roll_number);
+                    const imageData = allImages[i];
                     
                     console.log(`Loading image for ${student.name} (${student.roll_number}):`, imageData ? 'Found' : 'Not found');
                     
@@ -922,7 +929,7 @@
         async function getStudentImage(roll) {
             try {
                 console.log('Fetching image for roll:', roll);
-                const response = await fetch(`http://localhost:5000/api/student/${roll}`);
+                const response = await fetch(`${API_URL}/student/${roll}`);
                 
                 if (!response.ok) {
                     console.error('Image fetch failed with status:', response.status);

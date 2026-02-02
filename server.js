@@ -1,11 +1,122 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const https = require('https');
+const fs = require('fs');
 const db = require('./db');
 
 const app = express();
 const PORT = 5000;
 
+// Generate self-signed certificate if it doesn't exist
+function ensureCertificate() {
+  if (fs.existsSync('./server.key') && fs.existsSync('./server.crt')) {
+    return;
+  }
+  
+  console.log('Generating self-signed certificate...');
+  try {
+    // Use forge library if available, otherwise create minimal working cert
+    try {
+      const forge = require('node-forge');
+      const pki = forge.pki;
+      
+      // Generate RSA key pair
+      const keys = pki.rsa.generateKeyPair(2048);
+      
+      // Create certificate
+      const cert = pki.createCertificate();
+      cert.publicKey = keys.publicKey;
+      cert.serialNumber = '01';
+      cert.validity.notBefore = new Date();
+      cert.validity.notAfter = new Date();
+      cert.validity.notAfter.setFullYear(cert.validity.notAfter.getFullYear() + 1);
+      
+      const attrs = [
+        { name: 'commonName', value: '10.231.80.1' },
+        { name: 'organizationName', value: 'Attendance System' },
+        { name: 'countryName', value: 'US' }
+      ];
+      cert.setSubject(attrs);
+      cert.setIssuer(attrs);
+      cert.setExtensions([
+        {
+          name: 'basicConstraints',
+          cA: true
+        },
+        {
+          name: 'keyUsage',
+          keyCertSign: true,
+          digitalSignature: true,
+          nonRepudiation: true,
+          keyEncipherment: true,
+          dataEncipherment: true
+        },
+        {
+          name: 'subjectAltName',
+          altNames: [
+            { type: 2, value: '10.231.80.1' },
+            { type: 2, value: 'localhost' }
+          ]
+        }
+      ]);
+      
+      // Self-sign
+      cert.sign(keys.privateKey, forge.md.sha256.create());
+      
+      // Export to PEM
+      const keyPem = pki.privateKeyToPem(keys.privateKey);
+      const certPem = pki.certificateToPem(cert);
+      
+      fs.writeFileSync('./server.key', keyPem);
+      fs.writeFileSync('./server.crt', certPem);
+      console.log('✓ Certificate generated: server.key, server.crt');
+    } catch (forgeError) {
+      console.log('node-forge not available, trying alternative method...');
+      throw forgeError;
+    }
+  } catch (error) {
+    console.warn('Certificate generation failed:', error.message);
+    console.log('Installing node-forge...');
+    
+    const { execSync } = require('child_process');
+    try {
+      execSync('npm install node-forge', { stdio: 'inherit' });
+      // Retry with forge
+      const forge = require('node-forge');
+      const pki = forge.pki;
+      
+      const keys = pki.rsa.generateKeyPair(2048);
+      const cert = pki.createCertificate();
+      cert.publicKey = keys.publicKey;
+      cert.serialNumber = '01';
+      cert.validity.notBefore = new Date();
+      cert.validity.notAfter = new Date();
+      cert.validity.notAfter.setFullYear(cert.validity.notAfter.getFullYear() + 1);
+      
+      const attrs = [
+        { name: 'commonName', value: '10.231.80.1' },
+        { name: 'organizationName', value: 'Attendance System' }
+      ];
+      cert.setSubject(attrs);
+      cert.setIssuer(attrs);
+      cert.sign(keys.privateKey, forge.md.sha256.create());
+      
+      const keyPem = pki.privateKeyToPem(keys.privateKey);
+      const certPem = pki.certificateToPem(cert);
+      
+      fs.writeFileSync('./server.key', keyPem);
+      fs.writeFileSync('./server.crt', certPem);
+      console.log('✓ Certificate generated: server.key, server.crt');
+    } catch (installError) {
+      console.error('Failed to install/use node-forge. Please run manually:');
+      console.error('  npm install node-forge');
+      process.exit(1);
+    }
+  }
+}
+
+ensureCertificate();
 // Middleware
 app.use(cors());
 app.use(bodyParser.json({ limit: '50mb' }));
@@ -863,9 +974,15 @@ app.post('/api/attendance/auto-mark', async (req, res) => {
   }
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+// Start HTTPS server
+const options = {
+  key: fs.readFileSync('./server.key'),
+  cert: fs.readFileSync('./server.crt')
+};
+
+https.createServer(options, app).listen(PORT, () => {
+  console.log(`Server running on https://localhost:${PORT}`);
+  console.log(`Access from phone: https://10.231.80.1:${PORT}`);
   initializeDatabase();
 });
 

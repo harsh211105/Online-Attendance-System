@@ -20,7 +20,7 @@
     <script>
         async function testGetStudents() {
             try {
-                const response = await fetch('http://localhost:5000/api/students');
+                const response = await fetch('https://localhost:5000/api/students');
                 const data = await response.json();
                 document.getElementById('response').textContent = JSON.stringify(data, null, 2);
             } catch (error) {
@@ -33,7 +33,7 @@
                 const roll = prompt('Enter roll number:');
                 if (!roll) return;
                 
-                const response = await fetch(`http://localhost:5000/api/students/${roll}`);
+                const response = await fetch(`https://localhost:5000/api/students/${roll}`);
                 const data = await response.json();
                 document.getElementById('response').textContent = JSON.stringify(data, null, 2);
             } catch (error) {

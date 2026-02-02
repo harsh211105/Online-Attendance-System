@@ -412,6 +412,10 @@
             <h2>Face Verification</h2>
             <p>Please position your face in the camera and click "Verify Face" to confirm your identity.</p>
             
+            <div style="background: #fff3bf; color: #7d6608; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem;">
+                <strong>📱 On Phone?</strong> Make sure to allow camera access when prompted by your browser!
+            </div>
+            
             <div id="cameraContainer">
                 <video id="faceVideo" autoplay playsinline></video>
                 <canvas id="faceCanvas"></canvas>
@@ -572,23 +576,73 @@
         document.getElementById('startFaceBtn').addEventListener('click', async function() {
             try {
                 const video = document.getElementById('faceVideo');
-                faceStream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        facingMode: 'user',
-                        width: { ideal: 640 },
-                        height: { ideal: 480 }
+                
+                console.log('Requesting camera access...');
+                
+                // Try with very simple constraints first
+                let faceStream = null;
+                
+                try {
+                    // First attempt: minimal constraints (most compatible)
+                    faceStream = await navigator.mediaDevices.getUserMedia({
+                        video: true,
+                        audio: false
+                    });
+                    console.log('✓ Camera access granted with minimal constraints');
+                } catch (e1) {
+                    console.warn('Minimal constraints failed, trying with specific facingMode...');
+                    
+                    // Second attempt: with facingMode
+                    try {
+                        faceStream = await navigator.mediaDevices.getUserMedia({
+                            video: { facingMode: 'user' },
+                            audio: false
+                        });
+                        console.log('✓ Camera access granted with facingMode');
+                    } catch (e2) {
+                        console.warn('FacingMode failed, trying with width/height...');
+                        
+                        // Third attempt: with resolution
+                        faceStream = await navigator.mediaDevices.getUserMedia({
+                            video: {
+                                width: { max: 320 },
+                                height: { max: 240 }
+                            },
+                            audio: false
+                        });
+                        console.log('✓ Camera access granted with resolution constraints');
                     }
-                });
-
+                }
+                
                 video.srcObject = faceStream;
+                
+                // Ensure video plays
+                video.onloadedmetadata = () => {
+                    console.log('Video metadata loaded, playing...');
+                    video.play();
+                };
+                
                 document.getElementById('startFaceBtn').style.display = 'none';
                 document.getElementById('verifyFaceBtn').style.display = 'block';
                 document.getElementById('cancelFaceBtn').style.display = 'block';
                 
                 showFaceStatus('Camera ready. Click "Verify Face" to check your identity.', 'info');
             } catch (error) {
-                showFaceStatus('Camera access denied. Please allow camera permissions.', 'error');
                 console.error('Camera error:', error);
+                
+                // Provide helpful error messages
+                let errorMsg = 'Camera access denied.';
+                if (error.name === 'NotAllowedError') {
+                    errorMsg = '❌ Camera permission denied.\n\n1. Go to Chrome Settings\n2. Tap on this website\n3. Change Camera to "Allow"\n4. Reload this page';
+                } else if (error.name === 'NotFoundError') {
+                    errorMsg = '❌ No camera found on your device.';
+                } else if (error.name === 'NotReadableError') {
+                    errorMsg = '❌ Camera is already in use by another app. Close other apps and try again.';
+                } else if (error.name === 'SecurityError') {
+                    errorMsg = '❌ Camera access blocked for security reasons. Check your browser settings.';
+                }
+                
+                showFaceStatus(errorMsg, 'error');
             }
         });
 
@@ -618,22 +672,61 @@
                 const canvas = document.getElementById('faceCanvas');
                 const ctx = canvas.getContext('2d');
 
+                // Wait for video to be ready and playing
+                if (video.videoWidth === 0 || video.videoHeight === 0) {
+                    console.warn('Video not ready yet, waiting...');
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+
+                console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+                console.log('Video readyState:', video.readyState);
+                console.log('Video paused:', video.paused);
+
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
+                
+                if (canvas.width === 0 || canvas.height === 0) {
+                    console.error('Canvas has 0 dimensions, video not ready');
+                    showFaceStatus('Video stream not ready. Please wait and try again.', 'error');
+                    return;
+                }
+
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                // Detect face and extract descriptor
-                console.log('Starting face detection from video...');
-                const detection = await faceapi
-                    .detectSingleFace(canvas)
-                    .withFaceLandmarks()
-                    .withFaceDescriptor();
+                // Detect face from VIDEO directly (more reliable than canvas)
+                console.log('Starting face detection from video directly...');
+                let detection;
+                
+                try {
+                    // Try video first (more reliable)
+                    detection = await faceapi
+                        .detectSingleFace(video)
+                        .withFaceLandmarks()
+                        .withFaceDescriptor();
+                    
+                    console.log('Detection from video successful');
+                } catch (videoDetectError) {
+                    console.warn('Video detection failed, trying canvas...', videoDetectError);
+                    
+                    // Fallback to canvas
+                    try {
+                        detection = await faceapi
+                            .detectSingleFace(canvas)
+                            .withFaceLandmarks()
+                            .withFaceDescriptor();
+                        
+                        console.log('Detection from canvas successful');
+                    } catch (canvasDetectError) {
+                        console.error('Both video and canvas detection failed:', canvasDetectError);
+                        detection = null;
+                    }
+                }
 
                 console.log('Detection result:', detection);
 
                 if (!detection) {
-                    showFaceStatus('No face detected. Please position your face clearly in the camera.', 'error');
-                    console.error('SECURITY: No face detected in video frame');
+                    showFaceStatus('No face detected. Please position your face clearly in the camera and ensure good lighting.', 'error');
+                    console.error('SECURITY: No face detected in video or canvas frame');
                     return;
                 }
 

@@ -5,12 +5,12 @@
 
 // Get the server URL dynamically - works on localhost and remote IP
 const getServerURL = () => {
-    // If accessed from localhost, use localhost with http
+    // If accessed from localhost, use localhost with http and port 5000
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         return 'http://localhost:5000/api';
     }
-    // Otherwise use the same host (http protocol)
-    return `http://${window.location.hostname}:5000/api`;
+    // For deployed environments (Render, etc), use https with same hostname (no port)
+    return `https://${window.location.hostname}/api`;
 };
 
 const API_URL = getServerURL();

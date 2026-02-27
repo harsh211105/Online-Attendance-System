@@ -421,10 +421,10 @@
         });
 
         // Admin Login
-        document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
+        document.getElementById('adminLoginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             console.log('Admin form submitted');
-            
+
             const adminId = document.getElementById('adminId').value.trim();
             const adminPassword = document.getElementById('adminPassword').value;
             const messageDiv = document.getElementById('message');
@@ -435,44 +435,35 @@
             messageDiv.className = 'message';
             messageDiv.textContent = 'Logging in... Please wait.';
 
-            // Admin hardcoded credentials
-            if (adminId === '1' && adminPassword === 'admin123') {
-                console.log('✓ Admin credentials CORRECT!');
-                messageDiv.className = 'message success';
-                messageDiv.textContent = 'Welcome Admin! Redirecting...';
-                
-                // Create admin session
-                const adminUser = {
-                    id: 1,
-                    name: 'Admin',
-                    roll: '1'
-                };
-                
-                console.log('Setting admin session:', adminUser);
-                sessionStorage.setItem('attendance_current_user', JSON.stringify(adminUser));
-                sessionStorage.setItem('userType', 'admin');
-                
-                console.log('Stored currentUser:', sessionStorage.getItem('attendance_current_user'));
-                console.log('Stored userType:', sessionStorage.getItem('userType'));
-                
-                console.log('About to redirect to dashboard.html');
-                
-                // Try immediate redirect first
-                setTimeout(function() {
-                    console.log('Timeout callback executing');
-                    console.log('Current URL:', window.location.href);
-                    console.log('Attempting redirect to dashboard.html');
-                    
-                    // Use document.location instead
-                    document.location.href = 'dashboard.html';
-                    
-                    console.log('Redirect command sent');
-                }, 500);
-            } else {
-                console.log('✗ Admin credentials INCORRECT!');
-                console.log('Expected: ID=1, Password=admin123');
+            try {
+                // call teacher-login endpoint using ID
+                const resp = await fetch(`${getServerURL()}/teacher-login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: adminId, password: adminPassword })
+                });
+                const result = await resp.json();
+                console.log('Teacher login result:', result);
+
+                if (result.success) {
+                    messageDiv.className = 'message success';
+                    messageDiv.textContent = result.message || 'Welcome Admin! Redirecting...';
+                    const adminUser = {
+                        id: result.teacher.id,
+                        name: result.teacher.name,
+                        roll: result.teacher.id.toString()
+                    };
+                    sessionStorage.setItem('attendance_current_user', JSON.stringify(adminUser));
+                    sessionStorage.setItem('userType', 'admin');
+                    setTimeout(() => { document.location.href = 'dashboard.html'; }, 500);
+                } else {
+                    messageDiv.className = 'message error';
+                    messageDiv.textContent = result.message || 'Invalid admin credentials';
+                }
+            } catch (err) {
+                console.error('Error during admin login fetch:', err);
                 messageDiv.className = 'message error';
-                messageDiv.textContent = 'Invalid admin credentials! Use ID: 1 and Password: admin123';
+                messageDiv.textContent = 'Login request failed. Check console.';
             }
         });
     </script>

@@ -206,28 +206,36 @@ app.post('/api/register', async (req, res) => {
 // 1b. Teacher/Admin Login
 app.post('/api/teacher-login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, id } = req.body;
     const clientIP = getClientIP(req);
     
     // Validate inputs
-    if (!email || !password) {
+    if ((!email && !id) || !password) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Email and password are required!' 
+        message: 'Email/ID and password are required!' 
       });
     }
 
     try {
-      // Find teacher
-      const teacher = await db.getAsync(
-        'SELECT id, name, email, approval_status FROM teachers WHERE email = ? AND password = ?',
-        [email, password]
-      );
+      // Find teacher by email OR by id
+      let teacher;
+      if (id) {
+        teacher = await db.getAsync(
+          'SELECT id, name, email, approval_status FROM teachers WHERE id = ? AND password = ?',
+          [id, password]
+        );
+      } else {
+        teacher = await db.getAsync(
+          'SELECT id, name, email, approval_status FROM teachers WHERE email = ? AND password = ?',
+          [email, password]
+        );
+      }
       
       if (!teacher) {
         return res.status(401).json({ 
           success: false, 
-          message: 'Invalid email or password!' 
+          message: 'Invalid credentials!' 
         });
       }
       
@@ -241,6 +249,7 @@ app.post('/api/teacher-login', async (req, res) => {
       }
       
       // Update teacher's IP and last login
+      console.log(`Updating teacher ${teacher.id} IP to ${clientIP}`);
       await db.runAsync(
         'UPDATE teachers SET current_ip = ?, last_login = NOW() WHERE id = ?',
         [clientIP, teacher.id]

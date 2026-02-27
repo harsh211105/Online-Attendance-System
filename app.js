@@ -5,12 +5,18 @@
 
 // Get the server URL dynamically - works on localhost and remote IP
 const getServerURL = () => {
+    // Debug output
+    console.log('Determining server URL, hostname=', window.location.hostname);
+
     // If accessed from localhost, use localhost with http and port 5000
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        console.log('Using local API URL http://localhost:5000/api');
         return 'http://localhost:5000/api';
     }
     // For deployed environments (Render, etc), use https with same hostname (no port)
-    return `https://${window.location.hostname}/api`;
+    const url = `https://${window.location.hostname}/api`;
+    console.log('Using deployed API URL', url);
+    return url;
 };
 
 const API_URL = getServerURL();
@@ -54,7 +60,7 @@ class AuthManager {
             console.error('Registration error:', error);
             return {
                 success: false,
-                message: 'Registration failed. Make sure the server is running on http://localhost:5000'
+                message: `Registration failed. Make sure the server is running and reachable at ${API_URL}`
             };
         }
     }
@@ -75,6 +81,7 @@ class AuthManager {
                 };
             }
 
+            console.log('AuthManager.login calling', `${API_URL}/login`);
             const response = await fetch(`${API_URL}/login`, {
                 method: 'POST',
                 headers: {
@@ -103,7 +110,7 @@ class AuthManager {
             console.error('Login error:', error);
             return {
                 success: false,
-                message: 'Login failed. Make sure the server is running on http://localhost:5000'
+                message: `Login failed. Make sure the server is running and reachable at ${API_URL}`
             };
         }
     }

@@ -286,12 +286,14 @@ app.post('/api/login', async (req, res) => {
     }
 
     try {
+      console.log('Student login attempt:', roll);
       // Find student
       const student = await db.getAsync(
         'SELECT id, name, roll_number, approval_status FROM students WHERE roll_number = ? AND password = ?',
         [roll, password]
       );
       
+      console.log('db.getAsync returned:', student);
       if (!student) {
         return res.status(401).json({ 
           success: false, 
@@ -323,10 +325,11 @@ app.post('/api/login', async (req, res) => {
         }
       });
     } catch (dbError) {
-      console.error('Database error:', dbError.message);
+      console.error('Database error during login:', dbError);
+      console.error(dbError.stack);
       res.status(500).json({ 
         success: false, 
-        message: 'Login failed: ' + dbError.message 
+        message: 'Login failed: ' + (dbError.message || JSON.stringify(dbError)) 
       });
     }
   } catch (error) {

@@ -436,16 +436,16 @@
             messageDiv.textContent = 'Logging in... Please wait.';
 
             // Admin hardcoded credentials
-            if (adminId === '0' && adminPassword === '1234') {
+            if (adminId === '1' && adminPassword === 'admin123') {
                 console.log('✓ Admin credentials CORRECT!');
                 messageDiv.className = 'message success';
                 messageDiv.textContent = 'Welcome Admin! Redirecting...';
                 
                 // Create admin session
                 const adminUser = {
-                    id: 0,
+                    id: 1,
                     name: 'Admin',
-                    roll: '0'
+                    roll: '1'
                 };
                 
                 console.log('Setting admin session:', adminUser);
@@ -470,9 +470,9 @@
                 }, 500);
             } else {
                 console.log('✗ Admin credentials INCORRECT!');
-                console.log('Expected: ID=0, Password=1234');
+                console.log('Expected: ID=1, Password=admin123');
                 messageDiv.className = 'message error';
-                messageDiv.textContent = 'Invalid admin credentials! Use ID: 0 and Password: 1234';
+                messageDiv.textContent = 'Invalid admin credentials! Use ID: 1 and Password: admin123';
             }
         });
     </script>

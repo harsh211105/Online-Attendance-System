@@ -5,12 +5,12 @@
 
 // Get the server URL dynamically - works on localhost and remote IP
 const getServerURL = () => {
-    // If accessed from localhost, use localhost
+    // If accessed from localhost, use localhost with http
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        return 'https://localhost:5000/api';
+        return 'http://localhost:5000/api';
     }
-    // If accessed from any other IP/domain, use that same host
-    return `https://${window.location.hostname}:5000/api`;
+    // Otherwise use the same host (http protocol)
+    return `http://${window.location.hostname}:5000/api`;
 };
 
 const API_URL = getServerURL();
@@ -54,7 +54,7 @@ class AuthManager {
             console.error('Registration error:', error);
             return {
                 success: false,
-                message: 'Registration failed. Make sure the server is running on https://localhost:5000'
+                message: 'Registration failed. Make sure the server is running on http://localhost:5000'
             };
         }
     }
@@ -103,7 +103,7 @@ class AuthManager {
             console.error('Login error:', error);
             return {
                 success: false,
-                message: 'Login failed. Make sure the server is running on https://localhost:5000'
+                message: 'Login failed. Make sure the server is running on http://localhost:5000'
             };
         }
     }

@@ -9,10 +9,11 @@ A complete face recognition-based attendance management system with real-time at
 npm install
 npm start
 ```
-Server runs on `https://localhost:5000`
+Server runs on `http://localhost:5000`
 
 ### First Time Setup
 1. **Teacher Login**: `http://localhost:5000` (username: teacher, password: teacher)
+// note: HTTPS removed, HTTP is sufficient for local development
 2. **Student Registration**: `http://localhost:5000/register.html`
 3. **Student Face Login**: `http://localhost:5000/face-login.html`
 

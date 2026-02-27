@@ -1,122 +1,16 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const https = require('https');
-const fs = require('fs');
-const db = require('./db');
+const { db, pool } = require('./db');
+require('dotenv').config();
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
-// Generate self-signed certificate if it doesn't exist
-function ensureCertificate() {
-  if (fs.existsSync('./server.key') && fs.existsSync('./server.crt')) {
-    return;
-  }
-  
-  console.log('Generating self-signed certificate...');
-  try {
-    // Use forge library if available, otherwise create minimal working cert
-    try {
-      const forge = require('node-forge');
-      const pki = forge.pki;
-      
-      // Generate RSA key pair
-      const keys = pki.rsa.generateKeyPair(2048);
-      
-      // Create certificate
-      const cert = pki.createCertificate();
-      cert.publicKey = keys.publicKey;
-      cert.serialNumber = '01';
-      cert.validity.notBefore = new Date();
-      cert.validity.notAfter = new Date();
-      cert.validity.notAfter.setFullYear(cert.validity.notAfter.getFullYear() + 1);
-      
-      const attrs = [
-        { name: 'commonName', value: '10.231.80.1' },
-        { name: 'organizationName', value: 'Attendance System' },
-        { name: 'countryName', value: 'US' }
-      ];
-      cert.setSubject(attrs);
-      cert.setIssuer(attrs);
-      cert.setExtensions([
-        {
-          name: 'basicConstraints',
-          cA: true
-        },
-        {
-          name: 'keyUsage',
-          keyCertSign: true,
-          digitalSignature: true,
-          nonRepudiation: true,
-          keyEncipherment: true,
-          dataEncipherment: true
-        },
-        {
-          name: 'subjectAltName',
-          altNames: [
-            { type: 2, value: '10.231.80.1' },
-            { type: 2, value: 'localhost' }
-          ]
-        }
-      ]);
-      
-      // Self-sign
-      cert.sign(keys.privateKey, forge.md.sha256.create());
-      
-      // Export to PEM
-      const keyPem = pki.privateKeyToPem(keys.privateKey);
-      const certPem = pki.certificateToPem(cert);
-      
-      fs.writeFileSync('./server.key', keyPem);
-      fs.writeFileSync('./server.crt', certPem);
-      console.log('✓ Certificate generated: server.key, server.crt');
-    } catch (forgeError) {
-      console.log('node-forge not available, trying alternative method...');
-      throw forgeError;
-    }
-  } catch (error) {
-    console.warn('Certificate generation failed:', error.message);
-    console.log('Installing node-forge...');
-    
-    const { execSync } = require('child_process');
-    try {
-      execSync('npm install node-forge', { stdio: 'inherit' });
-      // Retry with forge
-      const forge = require('node-forge');
-      const pki = forge.pki;
-      
-      const keys = pki.rsa.generateKeyPair(2048);
-      const cert = pki.createCertificate();
-      cert.publicKey = keys.publicKey;
-      cert.serialNumber = '01';
-      cert.validity.notBefore = new Date();
-      cert.validity.notAfter = new Date();
-      cert.validity.notAfter.setFullYear(cert.validity.notAfter.getFullYear() + 1);
-      
-      const attrs = [
-        { name: 'commonName', value: '10.231.80.1' },
-        { name: 'organizationName', value: 'Attendance System' }
-      ];
-      cert.setSubject(attrs);
-      cert.setIssuer(attrs);
-      cert.sign(keys.privateKey, forge.md.sha256.create());
-      
-      const keyPem = pki.privateKeyToPem(keys.privateKey);
-      const certPem = pki.certificateToPem(cert);
-      
-      fs.writeFileSync('./server.key', keyPem);
-      fs.writeFileSync('./server.crt', certPem);
-      console.log('✓ Certificate generated: server.key, server.crt');
-    } catch (installError) {
-      console.error('Failed to install/use node-forge. Please run manually:');
-      console.error('  npm install node-forge');
-      process.exit(1);
-    }
-  }
-}
+// HTTPS certificate generation was removed since the app will be deployed.  
+// Local development will now use plain HTTP via app.listen().
+// The self-signed certificate code and related dependencies are no longer needed.
 
-ensureCertificate();
 // Middleware
 app.use(cors());
 app.use(bodyParser.json({ limit: '50mb' }));
@@ -125,22 +19,54 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 // Serve static files
 app.use(express.static('./'));
 
+// Helper function to get client IP address
+function getClientIP(req) {
+  return (
+    req.headers['x-forwarded-for']?.split(',')[0].trim() ||
+    req.headers['x-client-ip'] ||
+    req.headers['cf-connecting-ip'] ||
+    req.connection.remoteAddress ||
+    req.socket.remoteAddress ||
+    req.ip ||
+    '0.0.0.0'
+  );
+}
+
 // Initialize database tables
 async function initializeDatabase() {
   try {
+    // Create teachers table
+    await new Promise((resolve, reject) => {
+      db.run(`
+        CREATE TABLE IF NOT EXISTS teachers (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL,
+          email TEXT UNIQUE NOT NULL,
+          password TEXT NOT NULL,
+          approval_status INTEGER DEFAULT 0,
+          current_ip VARCHAR(45),
+          last_login TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
     // Create students table with approval status (only if it doesn't exist)
     // NOTE: Table is NOT dropped on restart to preserve student data
     await new Promise((resolve, reject) => {
       db.run(`
         CREATE TABLE IF NOT EXISTS students (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id SERIAL PRIMARY KEY,
           name TEXT NOT NULL,
           roll_number TEXT UNIQUE NOT NULL,
           password TEXT NOT NULL,
-          image BLOB,
+          image BYTEA,
           face_descriptor TEXT,
           approval_status INTEGER DEFAULT 0,
-          registered_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `, (err) => {
         if (err) reject(err);
@@ -152,12 +78,12 @@ async function initializeDatabase() {
     await new Promise((resolve, reject) => {
       db.run(`
         CREATE TABLE IF NOT EXISTS attendance (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id SERIAL PRIMARY KEY,
           student_roll TEXT NOT NULL,
           attendance_date DATE NOT NULL,
           period_number INTEGER NOT NULL,
           status TEXT DEFAULT 'A',
-          marked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          marked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (student_roll) REFERENCES students(roll_number),
           UNIQUE(student_roll, attendance_date, period_number)
         )
@@ -171,15 +97,16 @@ async function initializeDatabase() {
     await new Promise((resolve, reject) => {
       db.run(`
         CREATE TABLE IF NOT EXISTS attendance_windows (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id SERIAL PRIMARY KEY,
+          teacher_id INTEGER NOT NULL,
           class_period INTEGER NOT NULL,
           attendance_date DATE NOT NULL,
-          window_start_time DATETIME NOT NULL,
-          window_end_time DATETIME NOT NULL,
+          window_start_time TIMESTAMP NOT NULL,
+          window_end_time TIMESTAMP NOT NULL,
           status TEXT DEFAULT 'open',
-          created_by TEXT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          UNIQUE(class_period, attendance_date)
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (teacher_id) REFERENCES teachers(id),
+          UNIQUE(teacher_id, class_period, attendance_date)
         )
       `, (err) => {
         if (err) reject(err);
@@ -191,12 +118,14 @@ async function initializeDatabase() {
     await new Promise((resolve, reject) => {
       db.run(`
         CREATE TABLE IF NOT EXISTS attendance_log (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id SERIAL PRIMARY KEY,
           student_roll TEXT NOT NULL,
           window_id INTEGER NOT NULL,
+          teacher_ip VARCHAR(45) NOT NULL,
+          student_ip VARCHAR(45) NOT NULL,
           attendance_date DATE NOT NULL,
           period_number INTEGER NOT NULL,
-          logged_in_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          logged_in_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (student_roll) REFERENCES students(roll_number),
           FOREIGN KEY (window_id) REFERENCES attendance_windows(id),
           UNIQUE(student_roll, window_id)
@@ -243,9 +172,15 @@ app.post('/api/register', async (req, res) => {
       }
       
       // Insert new student with face descriptor (approval_status: 0 = pending approval)
+      // convert image dataURL into raw bytes for BYTEA column
+      let imgData = image;
+      if (typeof imgData === 'string' && imgData.startsWith('data:')) {
+        imgData = Buffer.from(imgData.split(',')[1], 'base64');
+      }
+
       await db.runAsync(
         'INSERT INTO students (name, roll_number, password, image, face_descriptor, approval_status) VALUES (?, ?, ?, ?, ?, 0)',
-        [name, roll, password, image, faceDescriptor || null]
+        [name, roll, password, imgData, faceDescriptor || null]
       );
       
       res.json({ 
@@ -264,6 +199,75 @@ app.post('/api/register', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Registration failed: ' + error.message 
+    });
+  }
+});
+
+// 1b. Teacher/Admin Login
+app.post('/api/teacher-login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const clientIP = getClientIP(req);
+    
+    // Validate inputs
+    if (!email || !password) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email and password are required!' 
+      });
+    }
+
+    try {
+      // Find teacher
+      const teacher = await db.getAsync(
+        'SELECT id, name, email, approval_status FROM teachers WHERE email = ? AND password = ?',
+        [email, password]
+      );
+      
+      if (!teacher) {
+        return res.status(401).json({ 
+          success: false, 
+          message: 'Invalid email or password!' 
+        });
+      }
+      
+      // Check approval status
+      if (teacher.approval_status === 0) {
+        return res.status(403).json({ 
+          success: false, 
+          message: 'Waiting for admin approval',
+          approvalStatus: 'pending'
+        });
+      }
+      
+      // Update teacher's IP and last login
+      await db.runAsync(
+        'UPDATE teachers SET current_ip = ?, last_login = NOW() WHERE id = ?',
+        [clientIP, teacher.id]
+      );
+      
+      res.json({ 
+        success: true, 
+        message: `Welcome ${teacher.name}!`,
+        teacher: {
+          id: teacher.id,
+          name: teacher.name,
+          email: teacher.email
+        },
+        clientIP: clientIP
+      });
+    } catch (dbError) {
+      console.error('Database error:', dbError.message);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Login failed: ' + dbError.message 
+      });
+    }
+  } catch (error) {
+    console.error('Teacher login error:', error.message);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Login error: ' + error.message 
     });
   }
 });
@@ -584,10 +588,11 @@ app.get('/api/attendance/day/:date', async (req, res) => {
   }
 });
 
-// 15. Mark/Update attendance for a student (only creates records when marked as Present)
+// 15. Mark/Update attendance for a student with IP verification
 app.post('/api/attendance/mark', async (req, res) => {
   try {
-    const { student_roll, attendance_date, period_number, status } = req.body;
+    const { student_roll, attendance_date, period_number, status, teacher_id, window_id } = req.body;
+    const studentIP = getClientIP(req);
     
     if (!student_roll || !attendance_date || !period_number || !status) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -601,6 +606,29 @@ app.post('/api/attendance/mark', async (req, res) => {
 
     if (!student) {
       return res.status(404).json({ error: 'Student not found or not approved' });
+    }
+
+    // Verify IP if teacher_id is provided (for attendance submission)
+    if (teacher_id) {
+      const teacher = await db.getAsync(
+        'SELECT current_ip FROM teachers WHERE id = ?',
+        [teacher_id]
+      );
+
+      if (!teacher || !teacher.current_ip) {
+        return res.status(403).json({ 
+          error: 'Teacher not found or not currently logged in' 
+        });
+      }
+
+      // Check if student IP matches teacher's hotspot IP
+      if (studentIP !== teacher.current_ip) {
+        return res.status(403).json({ 
+          error: 'You must be on the teacher\'s hotspot to submit attendance',
+          studentIP: studentIP,
+          expectedIP: teacher.current_ip
+        });
+      }
     }
 
     // Only store records when status is 'P' (Present)
@@ -974,15 +1002,11 @@ app.post('/api/attendance/auto-mark', async (req, res) => {
   }
 });
 
-// Start HTTPS server
-const options = {
-  key: fs.readFileSync('./server.key'),
-  cert: fs.readFileSync('./server.crt')
-};
-
-https.createServer(options, app).listen(PORT, () => {
-  console.log(`Server running on https://localhost:${PORT}`);
-  console.log(`Access from phone: https://10.231.80.1:${PORT}`);
+// Start server on the configured PORT.
+// During local development we simply listen with Express; production environment
+// (e.g. Render) will also connect via HTTP and the platform handles HTTPS.
+app.listen(PORT, () => {
+  console.log(`✅ Server running on http://localhost:${PORT}`);
   initializeDatabase();
 });
 

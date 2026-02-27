@@ -1,49 +1,104 @@
-// Database configuration with SQLite
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+// Database configuration with PostgreSQL
+const { Pool } = require('pg');
+require('dotenv').config();
 
-// Create/open database file
-const dbPath = path.join(__dirname, 'attendance.db');
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('Error opening database:', err);
-  } else {
-    console.log('SQLite database connected at:', dbPath);
-  }
+// Build connection string from environment variables
+const user = process.env.DB_USER || 'postgres';
+const password = process.env.DB_PASSWORD || 'postgres';
+const host = process.env.DB_HOST || 'localhost';
+const port = process.env.DB_PORT || 5432;
+const database = process.env.DB_NAME || 'attendance_system';
+
+// build config object instead of string to avoid issues with special characters
+const encodedPassword = encodeURIComponent(password);
+const connectionString = `postgresql://${user}:${encodedPassword}@${host}:${port}/${database}`;
+
+console.log('DB Connection Info:', { user, password, host, port, database });
+console.log('Using connectionString:', JSON.stringify(connectionString));
+
+// Create connection pool using object to bypass parsing corner cases
+const pool = new Pool({
+  user,
+  password,
+  host,
+  port,
+  database,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Enable foreign keys
-db.run('PRAGMA foreign_keys = ON');
+pool.on('error', (err) => {
+  console.error('Unexpected PostgreSQL error:', err);
+});
 
-// Helper function to run queries with promises
-db.runAsync = function(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    this.run(sql, params, function(err) {
-      if (err) reject(err);
-      else resolve({ lastID: this.lastID, changes: this.changes });
-    });
-  });
+// Helper functions for consistency with old SQLite code
+const db = {};
+
+db.runAsync = async function(sql, params = []) {
+  try {
+    // Convert SQLite syntax (?) to PostgreSQL syntax ($1, $2, etc)
+    let paramIndex = 1;
+    const pgSql = sql.replace(/\?/g, () => `$${paramIndex++}`);
+    
+    const result = await pool.query(pgSql, params);
+    return { 
+      lastID: result.rows[0]?.id, 
+      changes: result.rowCount 
+    };
+  } catch (error) {
+    throw error;
+  }
 };
 
-// Helper function to get single row
-db.getAsync = function(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    this.get(sql, params, (err, row) => {
-      if (err) reject(err);
-      else resolve(row);
-    });
-  });
+db.getAsync = async function(sql, params = []) {
+  try {
+    let paramIndex = 1;
+    const pgSql = sql.replace(/\?/g, () => `$${paramIndex++}`);
+    
+    const result = await pool.query(pgSql, params);
+    return result.rows[0] || null;
+  } catch (error) {
+    throw error;
+  }
 };
 
-// Helper function to get all rows
-db.allAsync = function(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    this.all(sql, params, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows || []);
-    });
-  });
+db.allAsync = async function(sql, params = []) {
+  try {
+    let paramIndex = 1;
+    const pgSql = sql.replace(/\?/g, () => `$${paramIndex++}`);
+    
+    const result = await pool.query(pgSql, params);
+    return result.rows || [];
+  } catch (error) {
+    throw error;
+  }
 };
 
-module.exports = db;
+// Legacy callback-style run method for database initialization
+db.run = function(sql, params = [], callback) {
+  if (typeof params === 'function') {
+    callback = params;
+    params = [];
+  }
+
+  let paramIndex = 1;
+  const pgSql = sql.replace(/\?/g, () => `$${paramIndex++}`);
+
+  pool.query(pgSql, params)
+    .then((result) => {
+      if (callback) callback(null, result);
+    })
+    .catch((error) => {
+      if (callback) callback(error);
+    });
+};
+
+pool.on('error', (err) => {
+  console.error('Unexpected PostgreSQL error:', err);
+});
+
+pool.on('connect', () => {
+  console.log('PostgreSQL database connected successfully!');
+});
+
+module.exports = { db, pool };
 

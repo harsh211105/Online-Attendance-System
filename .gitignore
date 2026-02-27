@@ -44,6 +44,10 @@ Desktop.ini
 tmp/
 temp/
 
+# Certificate files generated for local HTTPS (no longer used)
+server.key
+server.crt
+
 # Windows-specific
 *.exe
 *.cmd

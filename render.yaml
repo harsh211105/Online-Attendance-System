@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: attendance-system
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: attendance-db
+          property: connectionString
+
+databases:
+  - name: attendance-db
+    engine: postgres
+    plan: free
+    initialSQL: |
+      CREATE USER attendance_user WITH PASSWORD 'password123';
+      GRANT ALL PRIVILEGES ON DATABASE attendance_db TO attendance_user;

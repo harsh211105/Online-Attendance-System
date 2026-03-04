@@ -1,280 +1,343 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Smart Attendance System</title>
-    <link rel="stylesheet" href="styles.css">
-    <style>
-        .login-tabs {
-            display: flex;
-            gap: 0;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #e0e0e0;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Attendance Login</title>
 
-        .login-tab {
-            flex: 1;
-            padding: 15px;
-            text-align: center;
-            background: #f5f5f5;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 1rem;
-            color: #666;
-            transition: all 0.3s ease;
-            border-bottom: 3px solid transparent;
-        }
+<style>
+* { box-sizing: border-box; }
 
-        .login-tab.active {
-            background: white;
-            color: #667eea;
-            border-bottom-color: #667eea;
-        }
+/* ===== ANIMATED BACKGROUND ===== */
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: linear-gradient(
+        120deg,
+        #667eea,
+        #764ba2,
+        #43cea2,
+        #185a9d
+    );
+    background-size: 400% 400%;
+    animation: bgMove 16s ease infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
 
-        .login-tab:hover {
-            background: white;
-        }
+@keyframes bgMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
 
-        .login-form {
-            display: none;
-        }
+/* ===== FLOATING SHAPES ===== */
+.bg-shapes span {
+    position: absolute;
+    width: 260px;
+    height: 260px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 50%;
+    animation: float 22s linear infinite;
+}
 
-        .login-form.active {
-            display: block;
-        }
+.bg-shapes span:nth-child(1) { top: 10%; left: 10%; }
+.bg-shapes span:nth-child(2) {
+    bottom: 15%;
+    right: 15%;
+    width: 320px;
+    height: 320px;
+    animation-duration: 28s;
+}
+.bg-shapes span:nth-child(3) {
+    top: 60%;
+    left: 60%;
+    width: 180px;
+    height: 180px;
+    animation-duration: 18s;
+}
 
-        .admin-badge {
-            display: inline-block;
-            background: #667eea;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            margin-left: 8px;
-        }
-    </style>
+@keyframes float {
+    from { transform: translateY(0); }
+    to { transform: translateY(-140px); }
+}
+
+/* ===== CONTAINER ===== */
+.container {
+    width: 100%;
+    max-width: 420px;
+    padding: 20px;
+    z-index: 1;
+}
+
+/* ===== TRANSPARENT CARD ===== */
+.form-section {
+    background: rgba(255,255,255,0.25);
+    backdrop-filter: blur(14px);
+    border-radius: 14px;
+    padding: 30px;
+    box-shadow: 0 25px 55px rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.35);
+    animation: fadeIn 0.6s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+h1 {
+    text-align: center;
+    color: #fff;
+    margin-bottom: 22px;
+}
+
+/* ===== TABS ===== */
+.login-tabs {
+    display: flex;
+    margin-bottom: 20px;
+    border-bottom: 2px solid rgba(255,255,255,0.4);
+}
+
+.login-tab {
+    flex: 1;
+    padding: 10px;
+    background: none;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    color: rgba(255,255,255,0.7);
+    border-bottom: 3px solid transparent;
+}
+
+.login-tab.active {
+    color: #fff;
+    border-bottom-color: #fff;
+}
+
+.admin-badge {
+    background: #fff;
+    color: #333;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    margin-left: 6px;
+}
+
+/* ===== FORMS ===== */
+.login-form { display: none; }
+.login-form.active { display: block; }
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.85rem;
+    margin-bottom: 5px;
+    color: #fff;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: none;
+    background: rgba(255,255,255,0.9);
+}
+
+.form-group input:focus {
+    outline: none;
+}
+
+/* ===== BUTTON ===== */
+.btn-primary {
+    width: 100%;
+    padding: 11px;
+    background: #1a73e8;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* ===== TEXT ===== */
+.message {
+    margin-top: 14px;
+    font-size: 0.85rem;
+    text-align: center;
+    color: #fff;
+}
+
+.message.success { color: #b6ffbf; }
+.message.error { color: #ffb6b6; }
+.message.warning { color: #ffe6a6; }
+
+.auth-link,
+.back-link {
+    margin-top: 14px;
+    text-align: center;
+    font-size: 0.85rem;
+}
+
+.auth-link a,
+.back-link a {
+    color: #fff;
+    text-decoration: underline;
+}
+</style>
 </head>
+
 <body>
-    <div class="container">
-        <div class="form-section">
-            <h1>Student Login</h1>
-            
-            <!-- Login Type Tabs -->
-            <div class="login-tabs">
-                <button class="login-tab active" onclick="switchTab('student')">
-                    Student Login
-                </button>
-                <button class="login-tab" onclick="switchTab('admin')">
-                    Admin Login <span class="admin-badge">Admin</span>
-                </button>
-            </div>
 
-            <!-- Student Login Form -->
-            <form id="studentLoginForm" class="login-form active">
-                <div class="form-group">
-                    <label for="studentRoll">Roll Number:</label>
-                    <input 
-                        type="text" 
-                        id="studentRoll" 
-                        name="studentRoll" 
-                        placeholder="Enter your roll number"
-                        required
-                    >
-                </div>
+<!-- BACKGROUND SHAPES -->
+<div class="bg-shapes">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
 
-                <div class="form-group">
-                    <label for="studentPassword">Password:</label>
-                    <input 
-                        type="password" 
-                        id="studentPassword" 
-                        name="studentPassword" 
-                        placeholder="Enter your password"
-                        autocomplete="current-password"
-                        required
-                    >
-                </div>
+<div class="container">
+<div class="form-section">
 
-                <button type="submit" class="btn btn-primary">Login</button>
-            </form>
+<h1>Smart Attendance Login</h1>
 
-            <!-- Admin Login Form -->
-            <form id="adminLoginForm" class="login-form">
-                <div class="form-group">
-                    <label for="adminId">Admin ID:</label>
-                    <input 
-                        type="text" 
-                        id="adminId" 
-                        name="adminId" 
-                        placeholder="Enter admin ID"
-                        required
-                    >
-                </div>
+<div class="login-tabs">
+    <button class="login-tab active" onclick="switchTab('student')">
+        Student Login
+    </button>
+    <button class="login-tab" onclick="switchTab('admin')">
+        Admin Login <span class="admin-badge">Admin</span>
+    </button>
+</div>
 
-                <div class="form-group">
-                    <label for="adminPassword">Admin Password:</label>
-                    <input 
-                        type="password" 
-                        id="adminPassword" 
-                        name="adminPassword" 
-                        placeholder="Enter admin password"
-                        autocomplete="current-password"
-                        required
-                    >
-                </div>
-
-                <button type="submit" class="btn btn-primary">Login as Admin</button>
-            </form>
-
-            <div id="message" class="message"></div>
-
-            <div class="auth-link">
-                <p>New student? <a href="register.html">Register here</a></p>
-            </div>
-
-            <div class="back-link">
-                <a href="index.html">← Back to Home</a>
-            </div>
-        </div>
+<!-- STUDENT LOGIN -->
+<form id="studentLoginForm" class="login-form active">
+    <div class="form-group">
+        <label>Roll Number</label>
+        <input type="text" id="studentRoll" placeholder="Enter your roll number" required>
     </div>
+    <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="studentPassword" placeholder="Enter your password" required>
+    </div>
+    <button type="submit" class="btn-primary">Login</button>
+</form>
 
-    <script src="app.js"></script>
-    <script>
-        function switchTab(tab) {
-            console.log('Switching to tab:', tab);
-            
-            // Update tab buttons
-            document.querySelectorAll('.login-tab').forEach(btn => btn.classList.remove('active'));
-            
-            // Find and activate the correct tab button
-            const tabButtons = Array.from(document.querySelectorAll('.login-tab'));
-            tabButtons.forEach(btn => {
-                if ((tab === 'student' && btn.textContent.includes('Student')) ||
-                    (tab === 'admin' && btn.textContent.includes('Admin'))) {
-                    btn.classList.add('active');
-                }
-            });
+<!-- ADMIN LOGIN -->
+<form id="adminLoginForm" class="login-form">
+    <div class="form-group">
+        <label>Admin ID</label>
+        <input type="text" id="adminId" required>
+    </div>
+    <div class="form-group">
+        <label>Admin Password</label>
+        <input type="password" id="adminPassword" required>
+    </div>
+    <button type="submit" class="btn-primary">Login as Admin</button>
+</form>
 
-            // Update forms
-            document.querySelectorAll('.login-form').forEach(form => form.classList.remove('active'));
-            
-            if (tab === 'student') {
-                document.getElementById('studentLoginForm').classList.add('active');
-            } else if (tab === 'admin') {
-                document.getElementById('adminLoginForm').classList.add('active');
-            }
+<div id="message" class="message"></div>
+
+<div class="auth-link">
+    New student? <a href="register.html">Register here</a>
+</div>
+
+<div class="back-link">
+    <a href="index.html">← Back to Home</a>
+</div>
+
+</div>
+</div>
+
+<script src="app.js"></script>
+
+<script>
+function switchTab(tab) {
+    document.querySelectorAll('.login-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.login-form').forEach(f => f.classList.remove('active'));
+
+    if (tab === 'student') {
+        document.querySelectorAll('.login-tab')[0].classList.add('active');
+        document.getElementById('studentLoginForm').classList.add('active');
+    } else {
+        document.querySelectorAll('.login-tab')[1].classList.add('active');
+        document.getElementById('adminLoginForm').classList.add('active');
+    }
+}
+
+/* ===== STUDENT LOGIN (FULL LOGIC RESTORED) ===== */
+document.getElementById('studentLoginForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const rollNumber = studentRoll.value.trim();
+    const password = studentPassword.value;
+    const messageDiv = document.getElementById('message');
+
+    messageDiv.textContent = 'Logging in...';
+
+    const result = await AuthManager.login(rollNumber, password);
+
+    if (result.success) {
+        messageDiv.className = 'message success';
+        messageDiv.textContent = result.message;
+
+        sessionStorage.setItem('attendance_current_user', JSON.stringify(result.student));
+        sessionStorage.setItem('userType', 'student');
+
+        setTimeout(() => {
+            window.location.href = 'face-login.html';
+        }, 1500);
+    } else {
+        if (result.approvalStatus === 'pending') {
+            messageDiv.className = 'message warning';
+            alert('⏳ Your registration is pending admin approval.');
+        } else if (result.approvalStatus === 'rejected') {
+            messageDiv.className = 'message error';
+            alert('❌ Your registration was rejected.');
+        } else {
+            messageDiv.className = 'message error';
+            alert('Login Failed: ' + result.message);
         }
+    }
+});
 
-        // Student Login
-        document.getElementById('studentLoginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const rollNumber = document.getElementById('studentRoll').value.trim();
-            const password = document.getElementById('studentPassword').value;
-            const messageDiv = document.getElementById('message');
+/* ===== ADMIN LOGIN (FULL LOGIC RESTORED) ===== */
+document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
+    e.preventDefault();
 
-            messageDiv.className = 'message';
-            messageDiv.textContent = 'Logging in... Please wait.';
+    const adminIdValue = adminId.value.trim();
+    const adminPasswordValue = adminPassword.value;
+    const messageDiv = document.getElementById('message');
 
-            const result = await AuthManager.login(rollNumber, password);
-            
-            console.log('Login result:', result);
-            console.log('Result approval status:', result.approvalStatus);
-            console.log('Result success:', result.success);
-            
-            if (result.success) {
-                messageDiv.className = 'message success';
-                messageDiv.textContent = result.message;
-                
-                // Store user in session (will be used for face verification)
-                sessionStorage.setItem('attendance_current_user', JSON.stringify(result.student));
-                sessionStorage.setItem('userType', 'student');
-                
-                setTimeout(() => {
-                    // Redirect to face verification page
-                    window.location.href = 'face-login.html';
-                }, 1500);
-            } else {
-                console.log('Login failed - result.success is false');
-                console.log('approvalStatus value:', result.approvalStatus);
-                
-                // Check if it's an approval-related error
-                if (result.approvalStatus === 'pending') {
-                    console.log('Status is pending - showing pending alert');
-                    messageDiv.className = 'message warning';
-                    messageDiv.textContent = '⏳ Waiting for admin approval. Please check back later.';
-                    alert('⏳ Your registration is pending admin approval.\n\nPlease wait for admin to review and approve your account.');
-                } else if (result.approvalStatus === 'rejected') {
-                    console.log('Status is rejected - showing rejected alert');
-                    messageDiv.className = 'message error';
-                    messageDiv.textContent = '❌ Your registration was rejected.';
-                    alert('❌ Your registration was rejected by admin.\n\nPlease register again with correct information.');
-                } else {
-                    console.log('Status is neither pending nor rejected:', result.approvalStatus);
-                    messageDiv.className = 'message error';
-                    messageDiv.textContent = result.message;
-                    alert('Login Failed: ' + result.message);
-                }
-            }
-        });
+    messageDiv.textContent = 'Logging in...';
 
-        // Admin Login
-        document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            console.log('Admin form submitted');
-            
-            const adminId = document.getElementById('adminId').value.trim();
-            const adminPassword = document.getElementById('adminPassword').value;
-            const messageDiv = document.getElementById('message');
+    if (adminIdValue === '0' && adminPasswordValue === '1234') {
+        messageDiv.className = 'message success';
+        messageDiv.textContent = 'Welcome Admin! Redirecting...';
 
-            console.log('Admin ID entered:', adminId);
-            console.log('Admin Password entered:', adminPassword);
+        sessionStorage.setItem('attendance_current_user', JSON.stringify({
+            id: 0,
+            name: 'Admin',
+            roll: '0'
+        }));
+        sessionStorage.setItem('userType', 'admin');
 
-            messageDiv.className = 'message';
-            messageDiv.textContent = 'Logging in... Please wait.';
+        setTimeout(() => {
+            document.location.href = 'dashboard.html';
+        }, 500);
+    } else {
+        messageDiv.className = 'message error';
+        messageDiv.textContent = 'Invalid admin credentials!';
+    }
+});
+</script>
 
-            // Admin hardcoded credentials
-            if (adminId === '0' && adminPassword === '1234') {
-                console.log('✓ Admin credentials CORRECT!');
-                messageDiv.className = 'message success';
-                messageDiv.textContent = 'Welcome Admin! Redirecting...';
-                
-                // Create admin session
-                const adminUser = {
-                    id: 0,
-                    name: 'Admin',
-                    roll: '0'
-                };
-                
-                console.log('Setting admin session:', adminUser);
-                sessionStorage.setItem('attendance_current_user', JSON.stringify(adminUser));
-                sessionStorage.setItem('userType', 'admin');
-                
-                console.log('Stored currentUser:', sessionStorage.getItem('attendance_current_user'));
-                console.log('Stored userType:', sessionStorage.getItem('userType'));
-                
-                console.log('About to redirect to dashboard.html');
-                
-                // Try immediate redirect first
-                setTimeout(function() {
-                    console.log('Timeout callback executing');
-                    console.log('Current URL:', window.location.href);
-                    console.log('Attempting redirect to dashboard.html');
-                    
-                    // Use document.location instead
-                    document.location.href = 'dashboard.html';
-                    
-                    console.log('Redirect command sent');
-                }, 500);
-            } else {
-                console.log('✗ Admin credentials INCORRECT!');
-                console.log('Expected: ID=0, Password=1234');
-                messageDiv.className = 'message error';
-                messageDiv.textContent = 'Invalid admin credentials! Use ID: 0 and Password: 1234';
-            }
-        });
-    </script>
 </body>
 </html>
 

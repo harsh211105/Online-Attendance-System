@@ -644,7 +644,7 @@
 
         <div class="students-section">
             <h2>Pending Approvals</h2>
-            <div id="pendingContent" class="loading">Loading pending students...</div>
+            <div id="pending-students" class="loading">Loading pending students...</div>
         </div>
 
         <div class="students-section">
@@ -710,10 +710,12 @@
         // Load and display pending students (awaiting approval/rejected)
         async function loadPendingStudents() {
             try {
+                console.log('loadPendingStudents starting...');
                 const students = await AuthManager.getPendingStudents();
+                console.log('Loaded pending students count:', students.length);
                 
                 if (students.length === 0) {
-                    document.getElementById('pendingContent').innerHTML = 
+                    document.getElementById('pending-students').innerHTML = 
                         '<div class="no-data">No pending approvals.</div>';
                     return;
                 }
@@ -775,10 +777,10 @@
                 }
 
                 tableHTML += '</tbody></table>';
-                document.getElementById('pendingContent').innerHTML = tableHTML;
+                document.getElementById('pending-students').innerHTML = tableHTML;
             } catch (error) {
                 console.error('Error loading pending students:', error);
-                document.getElementById('pendingContent').innerHTML = 
+                document.getElementById('pending-students').innerHTML = 
                     '<div class="no-data">Error loading pending approvals</div>';
             }
         }

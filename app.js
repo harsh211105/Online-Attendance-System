@@ -5,8 +5,8 @@
 
 // Get the server URL dynamically - works on localhost, Raspberry Pi, and local network
 const getServerURL = () => {
-    // Use current protocol and hostname with port 5000
-    const url = `${window.location.protocol}//${window.location.hostname}:5000/api`;
+    // Use current protocol and host (with port if present) and /api path
+    const url = `${window.location.protocol}//${window.location.host}/api`;
     console.log('Using API URL:', url);
     return url;
 };
@@ -229,9 +229,11 @@ class AuthManager {
      */
     static async getPendingStudents() {
         try {
-            const response = await fetch(`${API_URL}/students/pending/list`);
+            console.log('Fetching pending students from:', `${API_URL}/students/pending`);
+            const response = await fetch(`${API_URL}/students/pending`);
             const result = await response.json();
-            
+            console.log('Pending students API response:', result);
+
             if (result.success) {
                 return result.data || [];
             } else {

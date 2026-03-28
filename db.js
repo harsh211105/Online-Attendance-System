@@ -1,10 +1,10 @@
 // Database configuration with PostgreSQL or Mock in-memory store
-const { Pool } = require('pg');
 require('dotenv').config();
 
 // Check if we should use mock database (for development without PostgreSQL)
-const USE_MOCK_DB = process.env.USE_MOCK_DB === 'true' || process.env.NODE_ENV === 'mock';
-console.log('USE_MOCK_DB in db.js:', USE_MOCK_DB, 'env value:', process.env.USE_MOCK_DB);
+// Default: true unless explicitly set to 'false'.
+const USE_MOCK_DB = process.env.USE_MOCK_DB !== 'false';
+console.log('Using', USE_MOCK_DB ? 'MOCK database' : 'PostgreSQL database', 'mode. USE_MOCK_DB:', process.env.USE_MOCK_DB);
 
 let db;
 
@@ -92,8 +92,8 @@ if (USE_MOCK_DB) {
           id: ++sequences.attendance_log,
           student_roll: params[0],
           window_id: params[1],
-          teacher_ip: params[2],
-          student_ip: params[3],
+          teacher_ip: params[2] || null,
+          student_ip: params[3] || null,
           attendance_date: params[4],
           period_number: params[5],
           logged_in_at: new Date().toISOString()
@@ -106,7 +106,30 @@ if (USE_MOCK_DB) {
         const teacher = mockData.teachers.find(t => t.id == params[1]);
         if (teacher) {
           if (sql.includes('current_ip')) teacher.current_ip = params[0];
-          if (sql.includes('last_login')) teacher.last_login = 'NOW()'; // Mock
+          if (sql.includes('last_login')) teacher.last_login = new Date().toISOString();
+          return { changes: 1 };
+        }
+      }
+      if (sql.includes('UPDATE students SET')) {
+        const student = mockData.students.find(s => s.roll_number === params[1] || s.id == params[1] || s.roll_number === params[0]);
+        if (student) {
+          if (sql.includes('approval_status')) student.approval_status = 1;
+          return { changes: 1 };
+        }
+      }
+      if (sql.includes('DELETE FROM students')) {
+        const rollNumber = params[0];
+        const index = mockData.students.findIndex(s => s.roll_number === rollNumber);
+        if (index !== -1) {
+          mockData.students.splice(index, 1);
+          return { changes: 1 };
+        }
+        return { changes: 0 };
+      }
+      if (sql.includes('UPDATE attendance_windows SET')) {
+        const window = mockData.attendance_windows.find(w => w.id == params[1] || w.id == params[0]);
+        if (window) {
+          if (sql.includes('status')) window.status = params[0];
           return { changes: 1 };
         }
       }
@@ -156,6 +179,9 @@ if (USE_MOCK_DB) {
       if (sql.includes('FROM attendance_log WHERE window_id =')) {
         return mockData.attendance_log.filter(l => l.window_id == params[0]);
       }
+      if (sql.includes('FROM students WHERE approval_status = 0')) {
+        return mockData.students.filter(s => s.approval_status === 0);
+      }
       return [];
     },
 
@@ -177,6 +203,8 @@ if (USE_MOCK_DB) {
 
 } else {
   // PostgreSQL implementation (existing code)
+  const { Pool } = require('pg');
+
   // Build connection configuration using either DATABASE_URL (preferred) or individual vars
   let poolConfig;
 

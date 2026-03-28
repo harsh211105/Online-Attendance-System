@@ -8,9 +8,11 @@ const forge = require('node-forge');
 const fs = require('fs');
 require('dotenv').config();
 
-// Force mock database for local network deployment without PostgreSQL
-process.env.USE_MOCK_DB = 'true';
-console.log('USE_MOCK_DB set to:', process.env.USE_MOCK_DB);
+// Configure database mode
+if (process.env.USE_MOCK_DB === undefined) {
+  process.env.USE_MOCK_DB = 'true';
+}
+console.log('USE_MOCK_DB=', process.env.USE_MOCK_DB, '=>', process.env.USE_MOCK_DB !== 'false' ? 'MOCK database' : 'PostgreSQL database');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -400,6 +402,26 @@ app.get('/api/students', async (req, res) => {
       count: students.length
     });
   } catch (error) {
+    console.error('Error fetching students:', error.message);
+    res.status(500).json({ success: false, message: 'Failed to fetch students: ' + error.message });
+  }
+});
+
+// 3a. Get pending students (for API compatibility /api/students/pending)
+app.get('/api/students/pending', async (req, res) => {
+  try {
+    const students = await db.allAsync(
+      'SELECT id, name, roll_number, registered_at, approval_status FROM students WHERE approval_status = 0 ORDER BY registered_at DESC'
+    );
+    res.json({ success: true, data: students, count: students.length });
+  } catch (error) {
+    console.error('Error fetching pending students (alias endpoint):', error.message);
+    res.status(500).json({ success: false, message: 'Failed to fetch pending students: ' + error.message });
+  }
+});
+
+// 4. Get Student by Roll Number (with image)
+app.get('/api/student/:roll', async (req, res) => {
     console.error('Error fetching students:', error.message);
     res.status(500).json({ 
       success: false, 

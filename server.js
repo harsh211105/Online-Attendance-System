@@ -9,10 +9,7 @@ const fs = require('fs');
 require('dotenv').config();
 
 // Configure database mode
-if (process.env.USE_MOCK_DB === undefined) {
-  process.env.USE_MOCK_DB = 'true';
-}
-console.log('USE_MOCK_DB=', process.env.USE_MOCK_DB, '=>', process.env.USE_MOCK_DB !== 'false' ? 'MOCK database' : 'PostgreSQL database');
+console.log('Using SQLite database');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -46,14 +43,14 @@ async function initializeDatabase() {
     await new Promise((resolve, reject) => {
       db.run(`
         CREATE TABLE IF NOT EXISTS teachers (
-          id SERIAL PRIMARY KEY,
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
           name TEXT NOT NULL,
           email TEXT UNIQUE NOT NULL,
           password TEXT NOT NULL,
           approval_status INTEGER DEFAULT 0,
-          current_ip VARCHAR(45),
-          last_login TIMESTAMP,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          current_ip TEXT,
+          last_login DATETIME,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `, (err) => {
         if (err) reject(err);
@@ -69,8 +66,6 @@ async function initializeDatabase() {
           'INSERT INTO teachers (id, name, email, password, approval_status) VALUES (?, ?, ?, ?, ?)',
           [0, 'Administrator', 'admin@example.com', '1234', 1]
         );
-        // Ensure the serial sequence is at least max(id)
-        await db.runAsync("SELECT setval(pg_get_serial_sequence('teachers','id'), (SELECT GREATEST(MAX(id), 1) FROM teachers))");
         console.log('Default admin user created: id=0, password=1234');
       }
     } catch (seedError) {
@@ -82,14 +77,14 @@ async function initializeDatabase() {
     await new Promise((resolve, reject) => {
       db.run(`
         CREATE TABLE IF NOT EXISTS students (
-          id SERIAL PRIMARY KEY,
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
           name TEXT NOT NULL,
           roll_number TEXT UNIQUE NOT NULL,
           password TEXT NOT NULL,
-          image BYTEA,
+          image BLOB,
           face_descriptor TEXT,
           approval_status INTEGER DEFAULT 0,
-          registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          registered_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `, (err) => {
         if (err) reject(err);
@@ -101,12 +96,12 @@ async function initializeDatabase() {
     await new Promise((resolve, reject) => {
       db.run(`
         CREATE TABLE IF NOT EXISTS attendance (
-          id SERIAL PRIMARY KEY,
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
           student_roll TEXT NOT NULL,
           attendance_date DATE NOT NULL,
           period_number INTEGER NOT NULL,
           status TEXT DEFAULT 'A',
-          marked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          marked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (student_roll) REFERENCES students(roll_number),
           UNIQUE(student_roll, attendance_date, period_number)
         )
@@ -120,14 +115,14 @@ async function initializeDatabase() {
     await new Promise((resolve, reject) => {
       db.run(`
         CREATE TABLE IF NOT EXISTS attendance_windows (
-          id SERIAL PRIMARY KEY,
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
           teacher_id INTEGER NOT NULL,
           class_period INTEGER NOT NULL,
           attendance_date DATE NOT NULL,
-          window_start_time TIMESTAMP NOT NULL,
-          window_end_time TIMESTAMP NOT NULL,
+          window_start_time DATETIME NOT NULL,
+          window_end_time DATETIME NOT NULL,
           status TEXT DEFAULT 'open',
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (teacher_id) REFERENCES teachers(id),
           UNIQUE(teacher_id, class_period, attendance_date)
         )
@@ -141,14 +136,14 @@ async function initializeDatabase() {
     await new Promise((resolve, reject) => {
       db.run(`
         CREATE TABLE IF NOT EXISTS attendance_log (
-          id SERIAL PRIMARY KEY,
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
           student_roll TEXT NOT NULL,
           window_id INTEGER NOT NULL,
-          teacher_ip VARCHAR(45) NOT NULL,
-          student_ip VARCHAR(45) NOT NULL,
+          teacher_ip TEXT NOT NULL,
+          student_ip TEXT NOT NULL,
           attendance_date DATE NOT NULL,
           period_number INTEGER NOT NULL,
-          logged_in_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          logged_in_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (student_roll) REFERENCES students(roll_number),
           FOREIGN KEY (window_id) REFERENCES attendance_windows(id),
           UNIQUE(student_roll, window_id)
@@ -202,8 +197,8 @@ app.post('/api/register', async (req, res) => {
       }
 
       await db.runAsync(
-        'INSERT INTO students (name, roll_number, password, image, face_descriptor, approval_status) VALUES (?, ?, ?, ?, ?, 1)',
-        [name, roll, password, imgData, faceDescriptor || null]
+        'INSERT INTO students (name, roll_number, password, image, face_descriptor, approval_status) VALUES (?, ?, ?, ?, ?, ?)',
+        [name, roll, password, imgData, faceDescriptor || null, 0]
       );
       
       res.json({ 
@@ -284,10 +279,10 @@ app.post('/api/teacher-login', async (req, res) => {
         });
       }
       
-      // Update teacher's IP and last login
+      // Update teacher's IP and last login (SQLite timestamp)
       console.log(`Updating teacher ${teacher.id} IP to ${clientIP}`);
       await db.runAsync(
-        'UPDATE teachers SET current_ip = ?, last_login = NOW() WHERE id = ?',
+        'UPDATE teachers SET current_ip = ?, last_login = CURRENT_TIMESTAMP WHERE id = ?',
         [clientIP, teacher.id]
       );
       
@@ -417,16 +412,6 @@ app.get('/api/students/pending', async (req, res) => {
   } catch (error) {
     console.error('Error fetching pending students (alias endpoint):', error.message);
     res.status(500).json({ success: false, message: 'Failed to fetch pending students: ' + error.message });
-  }
-});
-
-// 4. Get Student by Roll Number (with image)
-app.get('/api/student/:roll', async (req, res) => {
-    console.error('Error fetching students:', error.message);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to fetch students: ' + error.message 
-    });
   }
 });
 
@@ -804,9 +789,9 @@ app.post('/api/attendance-window/start', async (req, res) => {
     // Create new attendance window
     const result = await db.runAsync(
       `INSERT INTO attendance_windows 
-       (class_period, attendance_date, window_start_time, window_end_time, status, created_by) 
-       VALUES (?, ?, ?, ?, 'open', ?)`,
-      [period_number, today, now.toISOString(), windowEndTime.toISOString(), teacher_id]
+       (teacher_id, class_period, attendance_date, window_start_time, window_end_time, status) 
+       VALUES (?, ?, ?, ?, ?, 'open')`,
+      [teacher_id, period_number, today, now.toISOString(), windowEndTime.toISOString()]
     );
 
     res.json({
@@ -1071,7 +1056,10 @@ app.post('/api/attendance/auto-mark', async (req, res) => {
 });
 
 // Start server with HTTPS for camera access (required for mobile devices)
-if (FORCE_HTTPS) {
+(async () => {
+  await initializeDatabase();
+  
+  if (FORCE_HTTPS) {
   console.log('🔒 HTTPS mode enabled (required for camera access on mobile devices)');
 
   // Generate self-signed certificate for HTTPS (required for camera access on mobile devices)
@@ -1158,6 +1146,7 @@ app.get('/api/server/status', (req, res) => {
     ]
   });
 });
+})();
 
 // Debug endpoint - check what's in database
 app.get('/api/debug/student/:roll', async (req, res) => {

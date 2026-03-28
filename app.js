@@ -3,19 +3,11 @@
  * Phase 1: Registration & Login (with MySQL Backend)
  */
 
-// Get the server URL dynamically - works on localhost and remote IP
+// Get the server URL dynamically - works on localhost, Raspberry Pi, and local network
 const getServerURL = () => {
-    // Debug output
-    console.log('Determining server URL, hostname=', window.location.hostname);
-
-    // If accessed from localhost, use localhost with http and port 5000
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        console.log('Using local API URL http://localhost:5000/api');
-        return 'http://localhost:5000/api';
-    }
-    // For deployed environments (Render, etc), use https with same hostname (no port)
-    const url = `https://${window.location.hostname}/api`;
-    console.log('Using deployed API URL', url);
+    // Use current protocol and hostname with port 5000
+    const url = `${window.location.protocol}//${window.location.hostname}:5000/api`;
+    console.log('Using API URL:', url);
     return url;
 };
 

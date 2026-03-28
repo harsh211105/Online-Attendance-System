@@ -9,13 +9,23 @@ A complete face recognition-based attendance management system with real-time at
 npm install
 npm start
 ```
-Server runs on `http://localhost:5000`
+
+### HTTPS for Mobile Camera Access (Important!)
+**Mobile browsers require HTTPS for camera access.** The server automatically enables HTTPS by default.
+
+- **Local Development**: `https://localhost:5000`
+- **Network Access**: `https://YOUR_IP:5000`
+- **Mobile Devices**: Accept the certificate warning to enable camera
+
+**To disable HTTPS** (not recommended for mobile use):
+```bash
+FORCE_HTTPS=false npm start
+```
 
 ### First Time Setup
-1. **Teacher Login**: `http://localhost:5000` (username: teacher, password: teacher)
-// note: HTTPS removed, HTTP is sufficient for local development
-2. **Student Registration**: `http://localhost:5000/register.html`
-3. **Student Face Login**: `http://localhost:5000/face-login.html`
+1. **Teacher Login**: `https://localhost:5000` (username: teacher, password: teacher)
+2. **Student Registration**: `https://localhost:5000/register.html`
+3. **Student Face Login**: `https://localhost:5000/face-login.html`
 
 ---
 

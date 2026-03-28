@@ -450,6 +450,52 @@
         const MAX_RETRIES = 3;
         const FACE_THRESHOLD = 0.4;  // STRICT threshold: 0.4 means very close match required
 
+        // Check if camera access is possible in current context
+        async function checkCameraCompatibility() {
+            try {
+                const response = await fetch('/api/server/status');
+                const status = await response.json();
+
+                const isSecureContext = window.location.protocol === 'https:' ||
+                                      window.location.hostname === 'localhost' ||
+                                      window.location.hostname === '127.0.0.1';
+
+                console.log('Camera compatibility check:', {
+                    isSecureContext,
+                    protocol: window.location.protocol,
+                    hostname: window.location.hostname,
+                    serverHttps: status.server.isHttps
+                });
+
+                if (!isSecureContext && !status.camera.localhostAllowed) {
+                    const warningMsg = `
+                        <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin: 10px 0;">
+                            <h3 style="color: #856404; margin: 0 0 10px 0;">⚠️ Camera Access Blocked</h3>
+                            <p style="color: #856404; margin: 0 0 10px 0;">
+                                Camera access requires HTTPS on mobile devices. You're currently using HTTP.
+                            </p>
+                            <p style="color: #856404; margin: 0;">
+                                <strong>To enable camera access:</strong><br>
+                                1. Use: <code>https://${window.location.hostname}:5000</code><br>
+                                2. Accept the security certificate warning<br>
+                                3. Camera will work on mobile devices
+                            </p>
+                        </div>
+                    `;
+                    showFaceStatus(warningMsg, 'warning');
+                    return false;
+                }
+
+                return true;
+            } catch (error) {
+                console.warn('Could not check server status:', error);
+                // Fallback to basic secure context check
+                return window.location.protocol === 'https:' ||
+                       window.location.hostname === 'localhost' ||
+                       window.location.hostname === '127.0.0.1';
+            }
+        }
+
         // Load face-api models
         async function loadFaceApiModels() {
             try {
@@ -575,13 +621,19 @@
         // Show camera
         document.getElementById('startFaceBtn').addEventListener('click', async function() {
             try {
+                // First check if camera access is possible
+                const isCompatible = await checkCameraCompatibility();
+                if (!isCompatible) {
+                    return; // Warning already shown
+                }
+
                 const video = document.getElementById('faceVideo');
-                
+
                 console.log('Requesting camera access...');
-                
+
                 // Try with very simple constraints first
                 let faceStream = null;
-                
+
                 try {
                     // First attempt: minimal constraints (most compatible)
                     faceStream = await navigator.mediaDevices.getUserMedia({
@@ -591,7 +643,7 @@
                     console.log('✓ Camera access granted with minimal constraints');
                 } catch (e1) {
                     console.warn('Minimal constraints failed, trying with specific facingMode...');
-                    
+
                     // Second attempt: with facingMode
                     try {
                         faceStream = await navigator.mediaDevices.getUserMedia({
@@ -601,7 +653,7 @@
                         console.log('✓ Camera access granted with facingMode');
                     } catch (e2) {
                         console.warn('FacingMode failed, trying with width/height...');
-                        
+
                         // Third attempt: with resolution
                         faceStream = await navigator.mediaDevices.getUserMedia({
                             video: {
@@ -613,35 +665,37 @@
                         console.log('✓ Camera access granted with resolution constraints');
                     }
                 }
-                
+
                 video.srcObject = faceStream;
-                
+
                 // Ensure video plays
                 video.onloadedmetadata = () => {
                     console.log('Video metadata loaded, playing...');
                     video.play();
                 };
-                
+
                 document.getElementById('startFaceBtn').style.display = 'none';
                 document.getElementById('verifyFaceBtn').style.display = 'block';
                 document.getElementById('cancelFaceBtn').style.display = 'block';
-                
+
                 showFaceStatus('Camera ready. Click "Verify Face" to check your identity.', 'info');
             } catch (error) {
                 console.error('Camera error:', error);
-                
+
                 // Provide helpful error messages
                 let errorMsg = 'Camera access denied.';
                 if (error.name === 'NotAllowedError') {
-                    errorMsg = '❌ Camera permission denied.\n\n1. Go to Chrome Settings\n2. Tap on this website\n3. Change Camera to "Allow"\n4. Reload this page';
+                    errorMsg = '❌ Camera permission denied.\n\n1. Go to browser settings\n2. Allow camera access for this site\n3. Reload the page and try again';
                 } else if (error.name === 'NotFoundError') {
                     errorMsg = '❌ No camera found on your device.';
                 } else if (error.name === 'NotReadableError') {
                     errorMsg = '❌ Camera is already in use by another app. Close other apps and try again.';
                 } else if (error.name === 'SecurityError') {
-                    errorMsg = '❌ Camera access blocked for security reasons. Check your browser settings.';
+                    errorMsg = '❌ Camera access blocked for security reasons.\n\nThis usually means:\n• You\'re not using HTTPS\n• Try: https://' + window.location.hostname + ':5000';
+                } else if (error.name === 'NotSecureError' || error.message.includes('secure')) {
+                    errorMsg = '❌ Camera requires secure context (HTTPS).\n\nFor mobile devices:\n1. Use: https://' + window.location.hostname + ':5000\n2. Accept the certificate warning\n3. Camera will work';
                 }
-                
+
                 showFaceStatus(errorMsg, 'error');
             }
         });

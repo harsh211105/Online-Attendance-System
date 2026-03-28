@@ -11,12 +11,52 @@
         <div class="welcome-section">
             <h1>Smart Attendance System</h1>
             <p>Offline-First Student Attendance Management</p>
-            
+
+            <!-- Server Status Indicator -->
+            <div id="serverStatus" class="server-status" style="display: none;">
+                <div id="statusContent"></div>
+            </div>
+
             <div class="button-group">
                 <a href="login.html" class="btn btn-primary">Login</a>
                 <a href="register.html" class="btn btn-secondary">Register</a>
             </div>
         </div>
     </div>
+
+    <script>
+        // Check server status on page load
+        async function checkServerStatus() {
+            try {
+                const response = await fetch('/api/server/status');
+                const status = await response.json();
+
+                const statusDiv = document.getElementById('serverStatus');
+                const contentDiv = document.getElementById('statusContent');
+
+                if (status.server.isHttps) {
+                    contentDiv.innerHTML = `
+                        <div style="background: #d4edda; color: #155724; padding: 10px; border-radius: 5px; border: 1px solid #c3e6cb;">
+                            <strong>🔒 HTTPS Enabled</strong> - Camera access available on mobile devices
+                        </div>
+                    `;
+                } else {
+                    contentDiv.innerHTML = `
+                        <div style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; border: 1px solid #ffeaa7;">
+                            <strong>⚠️ HTTP Mode</strong> - Camera blocked on mobile devices<br>
+                            <small>Use: https://${window.location.hostname}:5000 for mobile camera access</small>
+                        </div>
+                    `;
+                }
+
+                statusDiv.style.display = 'block';
+            } catch (error) {
+                console.warn('Could not check server status:', error);
+            }
+        }
+
+        // Check status when page loads
+        window.addEventListener('load', checkServerStatus);
+    </script>
 </body>
 </html>

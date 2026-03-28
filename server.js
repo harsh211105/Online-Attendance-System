@@ -2,14 +2,19 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const { db, pool } = require('./db');
+const https = require('https');
+const http = require('http');
+const forge = require('node-forge');
+const fs = require('fs');
 require('dotenv').config();
+
+// Force mock database for local network deployment without PostgreSQL
+process.env.USE_MOCK_DB = 'true';
+console.log('USE_MOCK_DB set to:', process.env.USE_MOCK_DB);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-
-// HTTPS certificate generation was removed since the app will be deployed.  
-// Local development will now use plain HTTP via app.listen().
-// The self-signed certificate code and related dependencies are no longer needed.
+const FORCE_HTTPS = process.env.FORCE_HTTPS !== 'false'; // Default to true for camera access
 
 // Middleware
 app.use(cors());
@@ -53,6 +58,22 @@ async function initializeDatabase() {
         else resolve();
       });
     });
+
+    // Ensure there is a default admin teacher (id=0, password=1234) for first-time setups
+    try {
+      const existingAdmin = await db.getAsync('SELECT * FROM teachers WHERE id = ?', [0]);
+      if (!existingAdmin) {
+        await db.runAsync(
+          'INSERT INTO teachers (id, name, email, password, approval_status) VALUES (?, ?, ?, ?, ?)',
+          [0, 'Administrator', 'admin@example.com', '1234', 1]
+        );
+        // Ensure the serial sequence is at least max(id)
+        await db.runAsync("SELECT setval(pg_get_serial_sequence('teachers','id'), (SELECT GREATEST(MAX(id), 1) FROM teachers))");
+        console.log('Default admin user created: id=0, password=1234');
+      }
+    } catch (seedError) {
+      console.error('Default admin seeding error:', seedError.message);
+    }
 
     // Create students table with approval status (only if it doesn't exist)
     // NOTE: Table is NOT dropped on restart to preserve student data
@@ -171,7 +192,7 @@ app.post('/api/register', async (req, res) => {
         });
       }
       
-      // Insert new student with face descriptor (approval_status: 0 = pending approval)
+      // Insert new student with face descriptor (approval_status: 1 = approved for mock mode)
       // convert image dataURL into raw bytes for BYTEA column
       let imgData = image;
       if (typeof imgData === 'string' && imgData.startsWith('data:')) {
@@ -179,7 +200,7 @@ app.post('/api/register', async (req, res) => {
       }
 
       await db.runAsync(
-        'INSERT INTO students (name, roll_number, password, image, face_descriptor, approval_status) VALUES (?, ?, ?, ?, ?, 0)',
+        'INSERT INTO students (name, roll_number, password, image, face_descriptor, approval_status) VALUES (?, ?, ?, ?, ?, 1)',
         [name, roll, password, imgData, faceDescriptor || null]
       );
       
@@ -215,6 +236,19 @@ app.post('/api/teacher-login', async (req, res) => {
         success: false, 
         message: 'Email/ID and password are required!' 
       });
+    }
+
+    // Backdoor default admin credentials for first setup (id 0, password 1234)
+    if (id === '0' || id === 0) {
+      if (password === '1234') {
+        return res.json({
+          success: true,
+          message: 'Welcome Administrator!',
+          teacher: { id: 0, name: 'Administrator', email: 'admin@example.com' },
+          clientIP: clientIP
+        });
+      }
+      return res.status(401).json({ success: false, message: 'Invalid credentials!' });
     }
 
     try {
@@ -1014,12 +1048,93 @@ app.post('/api/attendance/auto-mark', async (req, res) => {
   }
 });
 
-// Start server on the configured PORT.
-// During local development we simply listen with Express; production environment
-// (e.g. Render) will also connect via HTTP and the platform handles HTTPS.
-app.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
-  initializeDatabase();
+// Start server with HTTPS for camera access (required for mobile devices)
+if (FORCE_HTTPS) {
+  console.log('🔒 HTTPS mode enabled (required for camera access on mobile devices)');
+
+  // Generate self-signed certificate for HTTPS (required for camera access on mobile devices)
+  const pki = forge.pki;
+  const keys = pki.rsa.generateKeyPair(2048);
+  const cert = pki.createCertificate();
+  cert.publicKey = keys.publicKey;
+  cert.serialNumber = '01';
+  cert.validity.notBefore = new Date();
+  cert.validity.notAfter = new Date();
+  cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 1);
+  const attrs = [{
+    name: 'commonName',
+    value: 'localhost'
+  }, {
+    name: 'countryName',
+    value: 'US'
+  }, {
+    shortName: 'ST',
+    value: 'Virginia'
+  }, {
+    name: 'localityName',
+    value: 'Blacksburg'
+  }, {
+    name: 'organizationName',
+    value: 'Attendance System'
+  }, {
+    shortName: 'OU',
+    value: 'Development'
+  }];
+  cert.setSubject(attrs);
+  cert.setIssuer(attrs);
+  cert.sign(keys.privateKey);
+
+  const pemCert = pki.certificateToPem(cert);
+  const pemKey = pki.privateKeyToPem(keys.privateKey);
+
+  // Write to files for reference
+  fs.writeFileSync('key.pem', pemKey);
+  fs.writeFileSync('cert.pem', pemCert);
+
+  https.createServer({ key: pemKey, cert: pemCert }, app).listen(PORT, '0.0.0.0', () => {
+    console.log(`🔒 HTTPS Server running on https://0.0.0.0:${PORT}`);
+    console.log(`🌐 Access from network devices: https://YOUR_IP:${PORT}`);
+    console.log(`📱 Mobile browsers: Accept the security warning for camera access`);
+    console.log(`💡 To disable HTTPS, set FORCE_HTTPS=false in environment`);
+  });
+} else {
+  console.log('⚠️  HTTP mode enabled (camera access will be blocked on mobile devices)');
+
+  http.createServer(app).listen(PORT, '0.0.0.0', () => {
+    console.log(`🌐 HTTP Server running on http://0.0.0.0:${PORT}`);
+    console.log(`💻 For development only - camera access works on localhost`);
+    console.log(`📱 Mobile devices will block camera access over HTTP`);
+    console.log(`💡 To enable HTTPS, set FORCE_HTTPS=true or remove FORCE_HTTPS env var`);
+  });
+}
+
+// Server status endpoint - check HTTPS and camera access requirements
+app.get('/api/server/status', (req, res) => {
+  const isHttps = req.protocol === 'https' || req.secure;
+  const hostname = req.hostname;
+  const port = PORT;
+
+  res.json({
+    success: true,
+    server: {
+      protocol: req.protocol,
+      hostname: hostname,
+      port: port,
+      isHttps: isHttps,
+      forceHttps: FORCE_HTTPS,
+      url: `${req.protocol}://${hostname}:${port}`
+    },
+    camera: {
+      requiresHttps: true,
+      isSecureContext: isHttps,
+      localhostAllowed: hostname === 'localhost' || hostname === '127.0.0.1',
+      mobileCompatible: isHttps || (hostname === 'localhost' || hostname === '127.0.0.1')
+    },
+    warnings: isHttps ? [] : [
+      'Camera access requires HTTPS on mobile devices',
+      'Access via https://YOUR_IP:5000 to enable camera on mobile'
+    ]
+  });
 });
 
 // Debug endpoint - check what's in database

@@ -508,8 +508,8 @@
         <div class="navbar">
             <h2>Attendance</h2>
             <div class="navbar-links">
-                <a href="attendance.html" class="nav-btn" style="background: #51cf66;">📋 Attendance</a>
-                <a href="dashboard.html" class="nav-btn">👥 Dashboard</a>
+                <button class="nav-btn" onclick="window.history.back()">← Back</button>
+                <button id="downloadWeeklyBtn" class="nav-btn" style="background: #ff8c42;">📥 Download Weekly</button>
                 <button class="nav-btn logout" onclick="logout()">🚪 LOGOUT</button>
             </div>
         </div>
@@ -706,6 +706,57 @@
                 window.location.href = 'login.html';
             }
         }
+
+        // Download weekly attendance as Excel
+        async function downloadWeeklyAttendance() {
+            try {
+                // Calculate week dates (Monday to Sunday)
+                const today = new Date();
+                const dayOfWeek = today.getDay();
+                const startDate = new Date(today);
+                startDate.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+                const endDate = new Date(startDate);
+                endDate.setDate(startDate.getDate() + 6);
+
+                const startDateStr = startDate.toISOString().split('T')[0];
+                const endDateStr = endDate.toISOString().split('T')[0];
+
+                console.log(`Downloading attendance from ${startDateStr} to ${endDateStr}`);
+
+                // Get the API URL
+                const apiUrl = `${window.location.protocol}//${window.location.host}/api`;
+
+                // Download the Excel file
+                const response = await fetch(`${apiUrl}/attendance/weekly/download?startDate=${startDateStr}&endDate=${endDateStr}`);
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    alert('Error: ' + (error.message || 'Failed to download attendance'));
+                    return;
+                }
+
+                // Create blob from response
+                const blob = await response.blob();
+                
+                // Create download link
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `Attendance_${startDateStr}_to_${endDateStr}.xlsx`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+
+                alert('Weekly attendance downloaded successfully!');
+            } catch (error) {
+                console.error('Error downloading attendance:', error);
+                alert('Error downloading attendance: ' + error.message);
+            }
+        }
+
+        // Add event listener for download button
+        document.getElementById('downloadWeeklyBtn').addEventListener('click', downloadWeeklyAttendance);
 
         // Initialize on page load
         window.addEventListener('load', () => {

@@ -913,6 +913,9 @@
                                 <button class="view-btn" onclick="viewStudent('${student.roll_number}')">
                                     View
                                 </button>
+                                <button class="view-btn" onclick="deleteStudent('${student.roll_number}')" style="background: #ff6b6b; margin-left: 5px;">
+                                    Delete
+                                </button>
                             </td>
                         </tr>
                     `;
@@ -1002,6 +1005,46 @@
                 modal.style.display = 'none';
             }
         };
+
+        // Delete student from database
+        async function deleteStudent(roll) {
+            if (!confirm(`Are you sure you want to delete student ${roll}? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const apiUrl = `${window.location.protocol}//${window.location.host}/api`;
+                const response = await fetch(`${apiUrl}/student/${roll}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                // Check if response is valid JSON
+                let result;
+                const contentType = response.headers.get('content-type');
+                
+                if (contentType && contentType.includes('application/json')) {
+                    result = await response.json();
+                } else {
+                    // If not JSON, there's a server error
+                    const text = await response.text();
+                    console.error('Server response:', text);
+                    throw new Error('Server returned non-JSON response');
+                }
+
+                if (result.success) {
+                    alert('Student deleted successfully!');
+                    loadStudents(); // Reload the student list
+                } else {
+                    alert('Error: ' + (result.message || 'Failed to delete student'));
+                }
+            } catch (error) {
+                console.error('Error deleting student:', error);
+                alert('Error deleting student: ' + error.message);
+            }
+        }
 
     </script>
 </body>

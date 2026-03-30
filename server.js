@@ -708,6 +708,220 @@ app.post('/api/attendance/mark', async (req, res) => {
   }
 });
 
+// ===== NEW ENDPOINTS =====
+
+// 16. Delete a student from the database (Admin only)
+app.delete('/api/student/:roll', async (req, res) => {
+  try {
+    const { roll } = req.params;
+    
+    console.log(`DELETE request for student: ${roll}`);
+    
+    // Check if student exists
+    const student = await db.getAsync(
+      'SELECT * FROM students WHERE roll_number = ?',
+      [roll]
+    );
+    
+    if (!student) {
+      console.log(`Student not found: ${roll}`);
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Student not found' 
+      });
+    }
+    
+    console.log(`Found student to delete: ${roll}`);
+    
+    // Delete attendance log records first (has foreign key to attendance_windows)
+    try {
+      await db.runAsync(
+        'DELETE FROM attendance_log WHERE student_roll = ?',
+        [roll]
+      );
+      console.log(`Deleted attendance_log records for ${roll}`);
+    } catch (logErr) {
+      console.warn(`Could not delete attendance_log (may not exist):`, logErr.message);
+    }
+    
+    // Delete attendance records
+    try {
+      await db.runAsync(
+        'DELETE FROM attendance WHERE student_roll = ?',
+        [roll]
+      );
+      console.log(`Deleted attendance records for ${roll}`);
+    } catch (attErr) {
+      console.warn(`Could not delete attendance records:`, attErr.message);
+    }
+    
+    // Delete the student record
+    const deleteResult = await db.runAsync(
+      'DELETE FROM students WHERE roll_number = ?',
+      [roll]
+    );
+    
+    console.log(`Delete result for student ${roll}:`, deleteResult);
+    
+    res.json({ 
+      success: true, 
+      message: `Student ${roll} has been deleted from the system` 
+    });
+  } catch (error) {
+    console.error('Error deleting student:', error.message);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to delete student: ' + error.message 
+    });
+  }
+});
+
+// 17. Get weekly attendance data
+app.get('/api/attendance/weekly', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    if (!startDate || !endDate) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'startDate and endDate are required' 
+      });
+    }
+
+    // Get all approved students
+    const students = await db.allAsync(
+      'SELECT id, roll_number, name FROM students WHERE approval_status = 1 ORDER BY roll_number'
+    );
+
+    // Get all attendance records for the week
+    const attendanceRecords = await db.allAsync(`
+      SELECT student_roll, attendance_date, period_number, status 
+      FROM attendance 
+      WHERE attendance_date BETWEEN ? AND ? 
+      ORDER BY attendance_date, period_number, student_roll
+    `, [startDate, endDate]);
+
+    // Build response data
+    const weeklyData = students.map(student => {
+      const studentAttendance = {
+        roll_number: student.roll_number,
+        name: student.name,
+        periods: {}
+      };
+
+      // Initialize all periods for the week as absent (A)
+      for (let d = new Date(startDate); d <= new Date(endDate); d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().split('T')[0];
+        for (let p = 1; p <= 7; p++) {
+          studentAttendance.periods[`${dateStr}_P${p}`] = 'A';
+        }
+      }
+
+      // Mark actual attendance
+      attendanceRecords.forEach(record => {
+        if (record.student_roll === student.roll_number) {
+          const key = `${record.attendance_date}_P${record.period_number}`;
+          studentAttendance.periods[key] = record.status;
+        }
+      });
+
+      return studentAttendance;
+    });
+
+    res.json({ 
+      success: true, 
+      startDate: startDate,
+      endDate: endDate,
+      data: weeklyData 
+    });
+  } catch (error) {
+    console.error('Error fetching weekly attendance:', error.message);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch weekly attendance: ' + error.message 
+    });
+  }
+});
+
+// 18. Download weekly attendance as Excel
+app.get('/api/attendance/weekly/download', async (req, res) => {
+  try {
+    const xlsx = require('xlsx');
+    const { startDate, endDate } = req.query;
+    
+    if (!startDate || !endDate) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'startDate and endDate are required' 
+      });
+    }
+
+    // Get all approved students
+    const students = await db.allAsync(
+      'SELECT id, roll_number, name FROM students WHERE approval_status = 1 ORDER BY roll_number'
+    );
+
+    // Get all attendance records for the week
+    const attendanceRecords = await db.allAsync(`
+      SELECT student_roll, attendance_date, period_number, status 
+      FROM attendance 
+      WHERE attendance_date BETWEEN ? AND ? 
+      ORDER BY attendance_date, period_number, student_roll
+    `, [startDate, endDate]);
+
+    // Generate dates for the week
+    const dates = [];
+    for (let d = new Date(startDate); d <= new Date(endDate); d.setDate(d.getDate() + 1)) {
+      dates.push(d.toISOString().split('T')[0]);
+    }
+
+    // Create worksheet data
+    const headers = ['Roll Number', 'Name', ...dates.flatMap(date => 
+      Array.from({length: 7}, (_, i) => `${date} P${i+1}`)
+    )];
+
+    const rows = students.map(student => {
+      const row = [student.roll_number, student.name];
+      
+      dates.forEach(date => {
+        for (let p = 1; p <= 7; p++) {
+          const record = attendanceRecords.find(r =>
+            r.student_roll === student.roll_number &&
+            r.attendance_date === date &&
+            r.period_number === p
+          );
+          row.push(record ? record.status : 'A');
+        }
+      });
+      
+      return row;
+    });
+
+    // Create workbook and worksheet
+    const ws = xlsx.utils.aoa_to_sheet([headers, ...rows]);
+    const wb = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(wb, ws, 'Attendance');
+
+    // Set column widths
+    ws['!cols'] = Array(headers.length).fill({ wch: 12 });
+
+    // Generate filename
+    const fileName = `Attendance_${startDate}_to_${endDate}.xlsx`;
+
+    // Send file as response
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.send(xlsx.write(wb, { bookType: 'xlsx', type: 'buffer' }));
+  } catch (error) {
+    console.error('Error generating Excel:', error.message);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to generate Excel: ' + error.message 
+    });
+  }
+});
+
 // ===== ATTENDANCE WINDOW ENDPOINTS (Teacher-controlled) =====
 
 // 15a. Start attendance window (Teacher clicks "Start Attendance")

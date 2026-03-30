@@ -295,6 +295,64 @@ class AuthManager {
             };
         }
     }
+
+    /**
+     * Delete a student from the database
+     * @param {string} roll - Student roll number
+     * @returns {Promise<Object>}
+     */
+    static async deleteStudent(roll) {
+        try {
+            const response = await fetch(`${API_URL}/student/${roll}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+            return result;
+        } catch (error) {
+            console.error('Error deleting student:', error);
+            return {
+                success: false,
+                message: 'Failed to delete student'
+            };
+        }
+    }
+
+    /**
+     * Get weekly attendance data
+     * @param {string} startDate - Start date (YYYY-MM-DD)
+     * @param {string} endDate - End date (YYYY-MM-DD)
+     * @returns {Promise<Array>}
+     */
+    static async getWeeklyAttendance(startDate, endDate) {
+        try {
+            const response = await fetch(`${API_URL}/attendance/weekly?startDate=${startDate}&endDate=${endDate}`);
+            const result = await response.json();
+            return result.success ? result.data : [];
+        } catch (error) {
+            console.error('Error fetching weekly attendance:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Download weekly attendance as Excel file
+     * @param {string} startDate - Start date (YYYY-MM-DD)
+     * @param {string} endDate - End date (YYYY-MM-DD)
+     * @returns {Promise<Blob>}
+     */
+    static async downloadWeeklyAttendance(startDate, endDate) {
+        try {
+            const response = await fetch(`${API_URL}/attendance/weekly/download?startDate=${startDate}&endDate=${endDate}`);
+            return await response.blob();
+        } catch (error) {
+            console.error('Error downloading weekly attendance:', error);
+            throw error;
+        }
+    }
 }
 
 /**

@@ -3,7 +3,15 @@
  * Phase 1: Registration & Login (with MySQL Backend)
  */
 
-const API_URL = 'http://localhost:5000/api';
+// Get the server URL dynamically - works on localhost, Raspberry Pi, and local network
+const getServerURL = () => {
+    // Use current protocol and host (with port if present) and /api path
+    const url = `${window.location.protocol}//${window.location.host}/api`;
+    console.log('Using API URL:', url);
+    return url;
+};
+
+const API_URL = getServerURL();
 
 class AuthManager {
     // Constants
@@ -44,7 +52,7 @@ class AuthManager {
             console.error('Registration error:', error);
             return {
                 success: false,
-                message: 'Registration failed. Make sure the server is running on http://localhost:5000'
+                message: `Registration failed. Make sure the server is running and reachable at ${API_URL}`
             };
         }
     }
@@ -65,6 +73,7 @@ class AuthManager {
                 };
             }
 
+            console.log('AuthManager.login calling', `${API_URL}/login`);
             const response = await fetch(`${API_URL}/login`, {
                 method: 'POST',
                 headers: {
@@ -93,7 +102,7 @@ class AuthManager {
             console.error('Login error:', error);
             return {
                 success: false,
-                message: 'Login failed. Make sure the server is running on http://localhost:5000'
+                message: `Login failed. Make sure the server is running and reachable at ${API_URL}`
             };
         }
     }
@@ -220,9 +229,11 @@ class AuthManager {
      */
     static async getPendingStudents() {
         try {
-            const response = await fetch(`${API_URL}/students/pending/list`);
+            console.log('Fetching pending students from:', `${API_URL}/students/pending`);
+            const response = await fetch(`${API_URL}/students/pending`);
             const result = await response.json();
-            
+            console.log('Pending students API response:', result);
+
             if (result.success) {
                 return result.data || [];
             } else {
@@ -282,6 +293,64 @@ class AuthManager {
                 success: false,
                 message: 'Failed to reject student'
             };
+        }
+    }
+
+    /**
+     * Delete a student from the database
+     * @param {string} roll - Student roll number
+     * @returns {Promise<Object>}
+     */
+    static async deleteStudent(roll) {
+        try {
+            const response = await fetch(`${API_URL}/student/${roll}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+            return result;
+        } catch (error) {
+            console.error('Error deleting student:', error);
+            return {
+                success: false,
+                message: 'Failed to delete student'
+            };
+        }
+    }
+
+    /**
+     * Get weekly attendance data
+     * @param {string} startDate - Start date (YYYY-MM-DD)
+     * @param {string} endDate - End date (YYYY-MM-DD)
+     * @returns {Promise<Array>}
+     */
+    static async getWeeklyAttendance(startDate, endDate) {
+        try {
+            const response = await fetch(`${API_URL}/attendance/weekly?startDate=${startDate}&endDate=${endDate}`);
+            const result = await response.json();
+            return result.success ? result.data : [];
+        } catch (error) {
+            console.error('Error fetching weekly attendance:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Download weekly attendance as Excel file
+     * @param {string} startDate - Start date (YYYY-MM-DD)
+     * @param {string} endDate - End date (YYYY-MM-DD)
+     * @returns {Promise<Blob>}
+     */
+    static async downloadWeeklyAttendance(startDate, endDate) {
+        try {
+            const response = await fetch(`${API_URL}/attendance/weekly/download?startDate=${startDate}&endDate=${endDate}`);
+            return await response.blob();
+        } catch (error) {
+            console.error('Error downloading weekly attendance:', error);
+            throw error;
         }
     }
 }

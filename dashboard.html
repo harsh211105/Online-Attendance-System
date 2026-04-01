@@ -28,371 +28,132 @@
             margin: 0 auto;
         }
 
-        .dashboard-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: clamp(2rem, 5vw, 3rem);
-            flex-wrap: wrap;
-            gap: clamp(1rem, 3vw, 2rem);
-        }
+/* ===== HEADER ===== */
+.dashboard-header {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:30px;
+}
 
-        .dashboard-header h1 {
-            margin: 0;
-            color: white;
-            font-size: clamp(1.5rem, 5vw, 2.5rem);
-            font-weight: 700;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            flex: 1;
-            min-width: 200px;
-        }
+.dashboard-header h1 {
+    color:white;
+    text-shadow:0 0 10px #00f2fe,0 0 20px #667eea;
+}
 
-        .header-right {
-            display: flex;
-            gap: clamp(0.5rem, 2vw, 1.5rem);
-            align-items: center;
-            flex-wrap: wrap;
-            justify-content: flex-end;
-        }
+.header-right {
+    display:flex;
+    gap:10px;
+    align-items:center;
+}
 
-        .user-info {
-            background: rgba(255, 255, 255, 0.95);
-            padding: clamp(0.6rem, 1vw, 1rem) clamp(1rem, 2vw, 1.5rem);
-            border-radius: 20px;
-            font-size: clamp(0.75rem, 1.5vw, 0.95rem);
-            font-weight: 600;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            white-space: nowrap;
-        }
+.user-info {
+    background:rgba(255,255,255,0.1);
+    padding:10px 15px;
+    border-radius:20px;
+    color:white;
+}
 
-        .user-info strong {
-            color: #667eea;
-        }
+.logout-btn {
+    background:#ff4d4d;
+    color:white;
+    border:none;
+    padding:10px 15px;
+    border-radius:20px;
+    cursor:pointer;
+}
 
-        .logout-btn {
-            background: #ff6b6b;
-            color: white;
-            padding: clamp(0.6rem, 1vw, 1rem) clamp(1rem, 2vw, 1.5rem);
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            font-weight: 700;
-            font-size: clamp(0.7rem, 1.5vw, 0.9rem);
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            white-space: nowrap;
-        }
+/* ===== BUTTONS ===== */
+.view-btn {
+    background:linear-gradient(135deg,#667eea,#764ba2);
+    color:white;
+    border:none;
+    padding:6px 12px;
+    border-radius:10px;
+    cursor:pointer;
+    box-shadow:0 0 10px rgba(102,126,234,0.6);
+}
 
-        .logout-btn:hover {
-            background: #ee5a52;
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
-        }
+.view-btn:hover {
+    box-shadow:0 0 20px rgba(102,126,234,1);
+}
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: clamp(1rem, 3vw, 2rem);
-            margin-bottom: clamp(2rem, 5vw, 3rem);
-        }
+/* ===== STATS ===== */
+.stat-card {
+    background:rgba(255,255,255,0.08);
+    backdrop-filter:blur(15px);
+    padding:20px;
+    border-radius:15px;
+    color:white;
+    margin-bottom:20px;
+}
 
-        .stat-card {
-            background: white;
-            padding: clamp(1.5rem, 3vw, 2rem);
-            border-radius: 16px;
-            text-align: center;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-            border-left: 5px solid #667eea;
-            transition: all 0.3s ease;
-            min-height: 150px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
+/* ===== SECTIONS ===== */
+.students-section {
+    background:rgba(255,255,255,0.08);
+    backdrop-filter:blur(15px);
+    padding:20px;
+    border-radius:15px;
+    margin-bottom:20px;
+    color:white;
+}
 
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
-        }
+.students-section h2 {
+    margin-bottom:15px;
+    border-left:4px solid #00f2fe;
+    padding-left:10px;
+}
 
-        .stat-card h3 {
-            margin: 0 0 clamp(0.5rem, 2vw, 1rem) 0;
-            font-size: clamp(0.7rem, 1.5vw, 0.95rem);
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: 600;
-        }
+/* ===== TABLE ===== */
+.students-table {
+    width:100%;
+    border-spacing:0 10px;
+}
 
-        .stat-card .number {
-            font-size: clamp(2rem, 5vw, 3rem);
-            font-weight: 800;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
+.students-table td, .students-table th {
+    padding:10px;
+}
 
-        .students-section {
-            background: white;
-            border-radius: 16px;
-            padding: clamp(1.5rem, 3vw, 2.5rem);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-            margin-bottom: clamp(1.5rem, 3vw, 2rem);
-            overflow-x: auto;
-        }
+.students-table tbody tr {
+    background:rgba(255,255,255,0.05);
+    border-radius:10px;
+    transition:0.3s;
+}
 
-        .students-section h2 {
-            color: #333;
-            margin-top: 0;
-            margin-bottom: clamp(1rem, 3vw, 1.5rem);
-            font-size: clamp(1.1rem, 3vw, 1.5rem);
-            font-weight: 700;
-            padding-bottom: clamp(0.7rem, 2vw, 1rem);
-            border-bottom: 3px solid #667eea;
-        }
+.students-table tbody tr:hover {
+    transform:scale(1.01);
+    box-shadow:0 0 20px rgba(0,242,254,0.3);
+}
 
-        .students-table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 600px;
-        }
+.student-image {
+    width:45px;
+    height:45px;
+    border-radius:50%;
+    box-shadow:0 0 10px #00f2fe;
+}
 
-        .students-table thead {
-            background: #f8f9fa;
-        }
+.loading, .no-data {
+    color:white;
+}
 
-        .students-table th {
-            padding: clamp(0.8rem, 1.5vw, 1.2rem);
-            text-align: left;
-            font-weight: 700;
-            color: #333;
-            border-bottom: 2px solid #e9ecef;
-            font-size: clamp(0.75rem, 1.5vw, 0.95rem);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .students-table td {
-            padding: clamp(0.8rem, 1.5vw, 1.2rem);
-            border-bottom: 1px solid #e9ecef;
-            font-size: clamp(0.75rem, 1.5vw, 0.95rem);
-        }
-
-        .students-table tbody tr {
-            transition: all 0.3s ease;
-        }
-
-        .students-table tbody tr:hover {
-            background: #f8f9fa;
-            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
-        }
-
-        .student-image {
-            width: clamp(35px, 8vw, 50px);
-            height: clamp(35px, 8vw, 50px);
-            border-radius: 50%;
-            object-fit: cover;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 2px solid #e9ecef;
-            min-width: 35px;
-        }
-
-        .student-image:hover {
-            transform: scale(1.15);
-            border-color: #667eea;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-
-        .view-btn, .approve-btn, .reject-btn {
-            padding: clamp(0.5rem, 1vw, 0.8rem) clamp(0.8rem, 1.5vw, 1.2rem);
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: clamp(0.65rem, 1.2vw, 0.85rem);
-            font-weight: 600;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            white-space: nowrap;
-        }
-
-        .view-btn {
-            background: #667eea;
-            color: white;
-        }
-
-        .view-btn:hover {
-            background: #5568d3;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-
-        .approve-btn {
-            background: #51cf66;
-            color: white;
-            margin-right: clamp(0.3rem, 1vw, 0.5rem);
-        }
-
-        .approve-btn:hover {
-            background: #40c057;
-            transform: translateY(-2px);
-        }
-
-        .reject-btn {
-            background: #ff6b6b;
-            color: white;
-        }
-
-        .reject-btn:hover {
-            background: #ee5a52;
-            transform: translateY(-2px);
-        }
-
-        .no-data {
-            text-align: center;
-            padding: clamp(2rem, 5vw, 2.5rem);
-            color: #999;
-            font-size: clamp(0.9rem, 2vw, 1.1rem);
-            font-weight: 500;
-        }
-
-        .loading {
-            text-align: center;
-            padding: clamp(2rem, 5vw, 2.5rem);
-            color: #667eea;
-            font-size: clamp(0.9rem, 2vw, 1.1rem);
-            font-weight: 600;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.4);
-            animation: fadeIn 0.3s ease;
-        }
-
-        .modal-content {
-            background-color: #fefefe;
-            margin: 10vh auto;
-            padding: clamp(1.5rem, 3vw, 2rem);
-            border-radius: 12px;
-            width: 90%;
-            max-width: 400px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            text-align: center;
-        }
-
-        .modal-content img {
-            width: 100%;
-            max-width: 300px;
-            border-radius: 12px;
-            margin-bottom: clamp(1rem, 2vw, 1.5rem);
-        }
-
-        .modal-content h3 {
-            color: #333;
-            margin: clamp(0.8rem, 2vw, 1rem) 0;
-            font-size: clamp(1rem, 2vw, 1.3rem);
-        }
-
-        .modal-content p {
-            color: #666;
-            margin: clamp(0.6rem, 1vw, 0.8rem) 0;
-            font-size: clamp(0.85rem, 1.5vw, 1rem);
-        }
-
-        .close-btn {
-            background: #667eea;
-            color: white;
-            padding: clamp(0.6rem, 1vw, 0.8rem) clamp(1rem, 2vw, 1.5rem);
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: clamp(0.8rem, 1.5vw, 1rem);
-            margin-top: clamp(0.8rem, 2vw, 1rem);
-            width: 100%;
-        }
-
-        .close-btn:hover {
-            background: #764ba2;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        @media (max-width: 768px) {
-            .dashboard-header {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .dashboard-header h1 {
-                min-width: auto;
-            }
-
-            .header-right {
-                justify-content: space-between;
-                width: 100%;
-            }
-
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .students-section {
-                padding: 1rem;
-            }
-
-            .student-image {
-                width: 35px;
-                height: 35px;
-            }
-
-            .modal-content {
-                margin: 20vh auto;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .students-table {
-                min-width: 500px;
-            }
-
-            .students-table th,
-            .students-table td {
-                padding: 0.5rem;
-            }
-
-            .user-info {
-                font-size: 0.7rem;
-                padding: 0.5rem 0.8rem;
-            }
-
-            .logout-btn {
-                font-size: 0.65rem;
-                padding: 0.5rem 0.8rem;
-            }
-        }
-    </style>
+</style>
 </head>
 <body>
-    <div class="container dashboard-container">
+<!-- FLOATING BG -->
+<div class="bg-animation">
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+<div class="container dashboard-container">
         <!-- Navigation Bar -->
         <div class="dashboard-header">
             <h1>Dashboard</h1>
             <div class="header-right">
                 <a href="attendance.html" style="background: #667eea; color: white; padding: 12px 24px; border: none; border-radius: 20px; cursor: pointer; font-weight: 700; font-size: 0.9rem; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); text-transform: uppercase; letter-spacing: 0.5px; text-decoration: none; display: inline-block;" onmouseover="this.style.background='#5568d3'; this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.4)';" onmouseout="this.style.background='#667eea'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.3)';">📋 Attendance</a>
+                <a href="attendance-control.html" style="background: #51cf66; color: white; padding: 12px 24px; border: none; border-radius: 20px; cursor: pointer; font-weight: 700; font-size: 0.9rem; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(81, 207, 102, 0.3); text-transform: uppercase; letter-spacing: 0.5px; text-decoration: none; display: inline-block;" onmouseover="this.style.background='#40c057'; this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 20px rgba(81, 207, 102, 0.4)';" onmouseout="this.style.background='#51cf66'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(81, 207, 102, 0.3)';">⏱️ Start Attendance</a>
                 <div class="user-info" id="userInfo">
                     Loading user info...
                 </div>
@@ -409,7 +170,7 @@
 
         <div class="students-section">
             <h2>Pending Approvals</h2>
-            <div id="pendingContent" class="loading">Loading pending students...</div>
+            <div id="pending-students" class="loading">Loading pending students...</div>
         </div>
 
         <div class="students-section">
@@ -475,10 +236,12 @@
         // Load and display pending students (awaiting approval/rejected)
         async function loadPendingStudents() {
             try {
+                console.log('loadPendingStudents starting...');
                 const students = await AuthManager.getPendingStudents();
+                console.log('Loaded pending students count:', students.length);
                 
                 if (students.length === 0) {
-                    document.getElementById('pendingContent').innerHTML = 
+                    document.getElementById('pending-students').innerHTML = 
                         '<div class="no-data">No pending approvals.</div>';
                     return;
                 }
@@ -540,10 +303,10 @@
                 }
 
                 tableHTML += '</tbody></table>';
-                document.getElementById('pendingContent').innerHTML = tableHTML;
+                document.getElementById('pending-students').innerHTML = tableHTML;
             } catch (error) {
                 console.error('Error loading pending students:', error);
-                document.getElementById('pendingContent').innerHTML = 
+                document.getElementById('pending-students').innerHTML = 
                     '<div class="no-data">Error loading pending approvals</div>';
             }
         }
@@ -597,7 +360,7 @@
         async function loadStudents() {
             try {
                 console.log('Fetching approved students...');
-                const response = await fetch('http://localhost:5000/api/students');
+                const response = await fetch(`${API_URL}/students`);
                 console.log('Response status:', response.status);
                 
                 const data = await response.json();
@@ -632,9 +395,16 @@
                         <tbody>
                 `;
 
-                for (const student of students) {
+                // Fetch all images in parallel for better performance on mobile
+                const imagePromises = students.map(student => 
+                    getStudentImage(student.roll_number).catch(() => '')
+                );
+                const allImages = await Promise.all(imagePromises);
+
+                for (let i = 0; i < students.length; i++) {
+                    const student = students[i];
                     const date = new Date(student.registered_at).toLocaleDateString();
-                    const imageData = await getStudentImage(student.roll_number);
+                    const imageData = allImages[i];
                     
                     console.log(`Loading image for ${student.name} (${student.roll_number}):`, imageData ? 'Found' : 'Not found');
                     
@@ -687,7 +457,7 @@
         async function getStudentImage(roll) {
             try {
                 console.log('Fetching image for roll:', roll);
-                const response = await fetch(`http://localhost:5000/api/student/${roll}`);
+                const response = await fetch(`${API_URL}/student/${roll}`);
                 
                 if (!response.ok) {
                     console.error('Image fetch failed with status:', response.status);
@@ -758,6 +528,46 @@
                 modal.style.display = 'none';
             }
         };
+
+        // Delete student from database
+        async function deleteStudent(roll) {
+            if (!confirm(`Are you sure you want to delete student ${roll}? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const apiUrl = `${window.location.protocol}//${window.location.host}/api`;
+                const response = await fetch(`${apiUrl}/student/${roll}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                // Check if response is valid JSON
+                let result;
+                const contentType = response.headers.get('content-type');
+                
+                if (contentType && contentType.includes('application/json')) {
+                    result = await response.json();
+                } else {
+                    // If not JSON, there's a server error
+                    const text = await response.text();
+                    console.error('Server response:', text);
+                    throw new Error('Server returned non-JSON response');
+                }
+
+                if (result.success) {
+                    alert('Student deleted successfully!');
+                    loadStudents(); // Reload the student list
+                } else {
+                    alert('Error: ' + (result.message || 'Failed to delete student'));
+                }
+            } catch (error) {
+                console.error('Error deleting student:', error);
+                alert('Error deleting student: ' + error.message);
+            }
+        }
 
     </script>
 </body>

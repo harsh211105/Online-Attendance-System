@@ -241,6 +241,169 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .face-verification-container {
+                max-width: 100%;
+                padding: 20px 12px;
+            }
+
+            .face-section {
+                padding: 20px;
+                border-radius: 10px;
+            }
+
+            .face-section h2 {
+                font-size: 1.3rem;
+                margin-bottom: 15px;
+            }
+
+            .face-section p {
+                font-size: 0.85rem;
+                margin-bottom: 20px;
+            }
+
+            #cameraContainer {
+                max-width: 100%;
+                margin: 0 auto 15px;
+                border: 2px solid #667eea;
+            }
+
+            .face-guide {
+                width: 200px;
+                height: 230px;
+                border-width: 2px;
+            }
+
+            .face-controls {
+                gap: 8px;
+                margin: 15px 0;
+            }
+
+            .btn-face {
+                padding: 12px 20px;
+                font-size: 0.85rem;
+                min-height: 44px;
+            }
+
+            .bypass-section {
+                margin-top: 20px;
+                padding-top: 20px;
+            }
+
+            .btn-bypass {
+                padding: 12px 18px;
+                min-height: 44px;
+            }
+
+            .retry-counter {
+                margin: 12px 0;
+                font-size: 0.9rem;
+            }
+
+            .face-status {
+                padding: 12px 14px;
+                margin: 12px 0;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .face-verification-container {
+                padding: 15px 10px;
+            }
+
+            .face-section {
+                padding: 15px;
+            }
+
+            .face-section h2 {
+                font-size: 1.1rem;
+                margin-bottom: 12px;
+            }
+
+            .face-section p {
+                font-size: 0.8rem;
+                margin-bottom: 15px;
+            }
+
+            #cameraContainer {
+                margin: 0 auto 12px;
+                max-width: 100%;
+            }
+
+            .face-guide {
+                width: 160px;
+                height: 190px;
+                border-width: 2px;
+            }
+
+            .face-controls {
+                gap: 6px;
+                margin: 12px 0;
+                flex-wrap: wrap;
+            }
+
+            .btn-face {
+                padding: 10px 14px;
+                font-size: 0.75rem;
+                min-height: 44px;
+                flex: 1;
+                min-width: 100px;
+            }
+
+            .bypass-section {
+                margin-top: 15px;
+                padding-top: 15px;
+            }
+
+            .bypass-section p {
+                font-size: 0.8rem;
+                margin-bottom: 12px;
+            }
+
+            .btn-bypass {
+                width: 100%;
+                padding: 10px 16px;
+                min-height: 44px;
+                font-size: 0.85rem;
+            }
+
+            .retry-counter {
+                font-size: 0.85rem;
+                margin: 10px 0;
+            }
+
+            .face-status {
+                padding: 10px 12px;
+                margin: 10px 0;
+                font-size: 0.8rem;
+                border-left-width: 3px;
+            }
+
+            .loading-spinner {
+                width: 18px;
+                height: 18px;
+                border-width: 2px;
+            }
+
+            /* Ensure buttons are touch-friendly */
+            button, a {
+                min-height: 44px;
+                min-width: 44px;
+            }
+
+            /* Prevent zoom on input focus */
+            input, select, textarea {
+                font-size: 16px;
+            }
+
+            /* Remove tap highlight */
+            * {
+                -webkit-tap-highlight-color: transparent;
+            }
+        }
     </style>
 </head>
 <body>
@@ -248,6 +411,10 @@
         <div class="face-section">
             <h2>Face Verification</h2>
             <p>Please position your face in the camera and click "Verify Face" to confirm your identity.</p>
+            
+            <div style="background: #fff3bf; color: #7d6608; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem;">
+                <strong>📱 On Phone?</strong> Make sure to allow camera access when prompted by your browser!
+            </div>
             
             <div id="cameraContainer">
                 <video id="faceVideo" autoplay playsinline></video>
@@ -283,6 +450,52 @@
         const MAX_RETRIES = 3;
         const FACE_THRESHOLD = 0.4;  // STRICT threshold: 0.4 means very close match required
 
+        // Check if camera access is possible in current context
+        async function checkCameraCompatibility() {
+            try {
+                const response = await fetch('/api/server/status');
+                const status = await response.json();
+
+                const isSecureContext = window.location.protocol === 'https:' ||
+                                      window.location.hostname === 'localhost' ||
+                                      window.location.hostname === '127.0.0.1';
+
+                console.log('Camera compatibility check:', {
+                    isSecureContext,
+                    protocol: window.location.protocol,
+                    hostname: window.location.hostname,
+                    serverHttps: status.server.isHttps
+                });
+
+                if (!isSecureContext && !status.camera.localhostAllowed) {
+                    const warningMsg = `
+                        <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin: 10px 0;">
+                            <h3 style="color: #856404; margin: 0 0 10px 0;">⚠️ Camera Access Blocked</h3>
+                            <p style="color: #856404; margin: 0 0 10px 0;">
+                                Camera access requires HTTPS on mobile devices. You're currently using HTTP.
+                            </p>
+                            <p style="color: #856404; margin: 0;">
+                                <strong>To enable camera access:</strong><br>
+                                1. Use: <code>https://${window.location.hostname}:5000</code><br>
+                                2. Accept the security certificate warning<br>
+                                3. Camera will work on mobile devices
+                            </p>
+                        </div>
+                    `;
+                    showFaceStatus(warningMsg, 'warning');
+                    return false;
+                }
+
+                return true;
+            } catch (error) {
+                console.warn('Could not check server status:', error);
+                // Fallback to basic secure context check
+                return window.location.protocol === 'https:' ||
+                       window.location.hostname === 'localhost' ||
+                       window.location.hostname === '127.0.0.1';
+            }
+        }
+
         // Load face-api models
         async function loadFaceApiModels() {
             try {
@@ -295,22 +508,43 @@
                     return;
                 }
 
-                // Load models from CDN
-                const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+                // Try loading from local first (for offline support)
+                let MODEL_URL = '/models/';
                 
-                await Promise.all([
-                    faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
-                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-                ]);
+                try {
+                    console.log('Attempting to load models from local server:', MODEL_URL);
+                    
+                    await Promise.all([
+                        faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+                        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                    ]);
 
-                modelsLoaded = true;
-                console.log('✓ Face-api models loaded successfully');
-                showFaceStatus('Models loaded. Click "Start Camera" to begin verification.', 'info');
+                    console.log('✓ Models loaded from LOCAL server successfully');
+                    modelsLoaded = true;
+                    showFaceStatus('Models loaded (offline). Click "Start Camera" to begin verification.', 'info');
+                    
+                } catch (localError) {
+                    console.warn('Local models not available, falling back to CDN...');
+                    
+                    // Fallback to CDN
+                    MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+                    console.log('Attempting to load models from CDN:', MODEL_URL);
+                    
+                    await Promise.all([
+                        faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+                        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                    ]);
+
+                    console.log('✓ Models loaded from CDN successfully');
+                    modelsLoaded = true;
+                    showFaceStatus('Models loaded (online). Click "Start Camera" to begin verification.', 'info');
+                }
                 
             } catch (error) {
-                console.error('Error loading face-api models:', error);
-                showFaceStatus('Loading face recognition models... Please wait.', 'info');
+                console.error('Error loading face-api models from both local and CDN:', error);
+                showFaceStatus('Error loading face recognition. Retrying...', 'error');
                 
                 // Retry loading
                 setTimeout(loadFaceApiModels, 2000);
@@ -387,24 +621,82 @@
         // Show camera
         document.getElementById('startFaceBtn').addEventListener('click', async function() {
             try {
+                // First check if camera access is possible
+                const isCompatible = await checkCameraCompatibility();
+                if (!isCompatible) {
+                    return; // Warning already shown
+                }
+
                 const video = document.getElementById('faceVideo');
-                faceStream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        facingMode: 'user',
-                        width: { ideal: 640 },
-                        height: { ideal: 480 }
+
+                console.log('Requesting camera access...');
+
+                // Try with very simple constraints first
+                let faceStream = null;
+
+                try {
+                    // First attempt: minimal constraints (most compatible)
+                    faceStream = await navigator.mediaDevices.getUserMedia({
+                        video: true,
+                        audio: false
+                    });
+                    console.log('✓ Camera access granted with minimal constraints');
+                } catch (e1) {
+                    console.warn('Minimal constraints failed, trying with specific facingMode...');
+
+                    // Second attempt: with facingMode
+                    try {
+                        faceStream = await navigator.mediaDevices.getUserMedia({
+                            video: { facingMode: 'user' },
+                            audio: false
+                        });
+                        console.log('✓ Camera access granted with facingMode');
+                    } catch (e2) {
+                        console.warn('FacingMode failed, trying with width/height...');
+
+                        // Third attempt: with resolution
+                        faceStream = await navigator.mediaDevices.getUserMedia({
+                            video: {
+                                width: { max: 320 },
+                                height: { max: 240 }
+                            },
+                            audio: false
+                        });
+                        console.log('✓ Camera access granted with resolution constraints');
                     }
-                });
+                }
 
                 video.srcObject = faceStream;
+
+                // Ensure video plays
+                video.onloadedmetadata = () => {
+                    console.log('Video metadata loaded, playing...');
+                    video.play();
+                };
+
                 document.getElementById('startFaceBtn').style.display = 'none';
                 document.getElementById('verifyFaceBtn').style.display = 'block';
                 document.getElementById('cancelFaceBtn').style.display = 'block';
-                
+
                 showFaceStatus('Camera ready. Click "Verify Face" to check your identity.', 'info');
             } catch (error) {
-                showFaceStatus('Camera access denied. Please allow camera permissions.', 'error');
                 console.error('Camera error:', error);
+
+                // Provide helpful error messages
+                let errorMsg = 'Camera access denied.';
+                if (error.name === 'NotAllowedError') {
+                    errorMsg = '❌ Camera permission denied.\n\n1. Go to browser settings\n2. Allow camera access for this site\n3. Reload the page and try again';
+                } else if (error.name === 'NotFoundError') {
+                    errorMsg = '❌ No camera found on your device.';
+                } else if (error.name === 'NotReadableError') {
+                    errorMsg = '❌ Camera is already in use by another app. Close other apps and try again.';
+                } else if (error.name === 'SecurityError') {
+                    errorMsg = '❌ Camera access blocked for security reasons.\n\nThis usually means:\n• You\'re not using HTTPS\n• Try: https://' + window.location.hostname + ':5000';
+                } else if (error.name === 'NotSecureError' || error.message.includes('secure')) {
+                    errorMsg = '❌ Camera requires secure context (HTTPS).\n\nFor mobile devices:\n1. Use: https://' + window.location.hostname + ':5000\n2. Accept the certificate warning\n3. Camera will work';
+                }
+
+                showFaceStatus(errorMsg, 'error');
             }
         });
 
@@ -434,22 +726,61 @@
                 const canvas = document.getElementById('faceCanvas');
                 const ctx = canvas.getContext('2d');
 
+                // Wait for video to be ready and playing
+                if (video.videoWidth === 0 || video.videoHeight === 0) {
+                    console.warn('Video not ready yet, waiting...');
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+
+                console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+                console.log('Video readyState:', video.readyState);
+                console.log('Video paused:', video.paused);
+
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
+                
+                if (canvas.width === 0 || canvas.height === 0) {
+                    console.error('Canvas has 0 dimensions, video not ready');
+                    showFaceStatus('Video stream not ready. Please wait and try again.', 'error');
+                    return;
+                }
+
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                // Detect face and extract descriptor
-                console.log('Starting face detection from video...');
-                const detection = await faceapi
-                    .detectSingleFace(canvas)
-                    .withFaceLandmarks()
-                    .withFaceDescriptor();
+                // Detect face from VIDEO directly (more reliable than canvas)
+                console.log('Starting face detection from video directly...');
+                let detection;
+                
+                try {
+                    // Try video first (more reliable)
+                    detection = await faceapi
+                        .detectSingleFace(video)
+                        .withFaceLandmarks()
+                        .withFaceDescriptor();
+                    
+                    console.log('Detection from video successful');
+                } catch (videoDetectError) {
+                    console.warn('Video detection failed, trying canvas...', videoDetectError);
+                    
+                    // Fallback to canvas
+                    try {
+                        detection = await faceapi
+                            .detectSingleFace(canvas)
+                            .withFaceLandmarks()
+                            .withFaceDescriptor();
+                        
+                        console.log('Detection from canvas successful');
+                    } catch (canvasDetectError) {
+                        console.error('Both video and canvas detection failed:', canvasDetectError);
+                        detection = null;
+                    }
+                }
 
                 console.log('Detection result:', detection);
 
                 if (!detection) {
-                    showFaceStatus('No face detected. Please position your face clearly in the camera.', 'error');
-                    console.error('SECURITY: No face detected in video frame');
+                    showFaceStatus('No face detected. Please position your face clearly in the camera and ensure good lighting.', 'error');
+                    console.error('SECURITY: No face detected in video or canvas frame');
                     return;
                 }
 
@@ -549,9 +880,72 @@
             // Store userType in session
             sessionStorage.setItem('userType', 'student');
             console.log('✓ Student login successful');
+            console.log('studentRoll variable:', studentRoll);
             
-            // Redirect to student dashboard
-            window.location.href = 'student.html';
+            // Auto-mark attendance using the global studentRoll variable
+            if (studentRoll) {
+                markAttendance(studentRoll);
+            } else {
+                console.error('ERROR: studentRoll is not defined');
+                showFaceStatus('Error: Could not determine student roll. Redirecting...', 'error');
+                setTimeout(() => {
+                    window.location.href = 'student-dashboard.html';
+                }, 2000);
+            }
+        }
+
+        // Auto-mark attendance on successful login
+        async function markAttendance(studentRoll) {
+            try {
+                console.log('Calling auto-mark attendance for roll:', studentRoll);
+                
+                const response = await fetch('/api/attendance/auto-mark', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ student_roll: studentRoll })
+                });
+
+                const data = await response.json();
+                console.log('Auto-mark response:', data);
+
+                if (response.ok) {
+                    // Attendance marked successfully
+                    console.log('✓ Attendance marked successfully');
+                    showFaceStatus(`✓ ${data.message}`, 'success');
+                    setTimeout(() => {
+                        console.log('Redirecting to student-dashboard.html');
+                        window.location.href = 'student-dashboard.html';
+                    }, 2000);
+                } else {
+                    // Error marking attendance - but still redirect
+                    console.log('Attendance marking failed:', data);
+                    
+                    if (data.outside_hours) {
+                        showFaceStatus('❌ Attendance can only be marked during class periods. But login successful!', 'info');
+                    } else if (data.already_marked) {
+                        showFaceStatus('✓ You are already marked present for this period!', 'success');
+                    } else if (data.window_closed) {
+                        // NEW: Handle attendance window closed
+                        showFaceStatus('❌ Attendance window is closed for this period. Your face has been verified but attendance could not be marked. Please contact your teacher.', 'error');
+                        console.warn('SECURITY: Attendance window was closed when student tried to log in');
+                    } else {
+                        showFaceStatus(`⚠️ ${data.error}`, 'info');
+                    }
+                    
+                    // Still redirect after showing message
+                    setTimeout(() => {
+                        console.log('Redirecting to student-dashboard.html despite attendance error');
+                        window.location.href = 'student-dashboard.html';
+                    }, 3000);
+                }
+            } catch (error) {
+                console.error('Attendance marking error:', error);
+                showFaceStatus('Login successful. Redirecting to dashboard...', 'success');
+                setTimeout(() => {
+                    console.log('Redirecting to student-dashboard.html after error');
+                    window.location.href = 'student-dashboard.html';
+                }, 2000);
+            }
         }
 
         // Clean up on page unload

@@ -3,253 +3,266 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Smart Attendance Login</title>
+<title>Login - Smart Attendance System</title>
 
 <style>
-* { box-sizing: border-box; }
-
-/* ===== ANIMATED BACKGROUND ===== */
+/* ===== BODY ===== */
 body {
     margin: 0;
-    min-height: 100vh;
-    font-family: "Segoe UI", Arial, sans-serif;
-    background: linear-gradient(
-        120deg,
-        #667eea,
-        #764ba2,
-        #43cea2,
-        #185a9d
-    );
-    background-size: 400% 400%;
-    animation: bgMove 16s ease infinite;
+    font-family: 'Segoe UI', sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    background: #0f172a;
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
+    align-items: center;
 }
 
-@keyframes bgMove {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+/* ===== GRADIENT ANIMATION ===== */
+body::before {
+    content: "";
+    position: absolute;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, #667eea, #764ba2, #6a11cb, #2575fc);
+    animation: gradientMove 12s ease infinite;
+    z-index: -3;
 }
 
-/* ===== FLOATING SHAPES ===== */
-.bg-shapes span {
+@keyframes gradientMove {
+    0% { transform: translate(-25%, -25%) rotate(0deg); }
+    50% { transform: translate(-50%, -50%) rotate(180deg); }
+    100% { transform: translate(-25%, -25%) rotate(360deg); }
+}
+
+/* ===== BLOBS ===== */
+.blob {
     position: absolute;
     width: 260px;
     height: 260px;
     background: rgba(255,255,255,0.15);
     border-radius: 50%;
-    animation: float 22s linear infinite;
+    filter: blur(80px);
+    opacity: 0.6;
+    animation: floatBlob 10s infinite ease-in-out alternate;
 }
 
-.bg-shapes span:nth-child(1) { top: 10%; left: 10%; }
-.bg-shapes span:nth-child(2) {
-    bottom: 15%;
-    right: 15%;
-    width: 320px;
-    height: 320px;
-    animation-duration: 28s;
-}
-.bg-shapes span:nth-child(3) {
-    top: 60%;
-    left: 60%;
-    width: 180px;
-    height: 180px;
-    animation-duration: 18s;
+.blob1 { width: 300px; height: 300px; background: #667eea; top: 10%; left: 10%; }
+.blob2 { width: 250px; height: 250px; background: #764ba2; bottom: 10%; right: 10%; }
+.blob3 { width: 200px; height: 200px; background: #6a11cb; top: 50%; left: 60%; }
+
+@keyframes floatBlob {
+    from { transform: translateY(0px) scale(1); }
+    to { transform: translateY(-40px) scale(1.2); }
 }
 
-@keyframes float {
-    from { transform: translateY(0); }
-    to { transform: translateY(-140px); }
+/* ===== PARTICLES ===== */
+.particle {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: white;
+    border-radius: 50%;
+    opacity: 0.6;
+    animation: moveParticles linear infinite;
 }
 
-/* ===== CONTAINER ===== */
+@keyframes moveParticles {
+    from { transform: translateY(0px); }
+    to { transform: translateY(-100vh); }
+}
+
+/* ===== CARD ===== */
 .container {
     width: 100%;
     max-width: 420px;
-    padding: 20px;
-    z-index: 1;
+    z-index: 2;
 }
 
 /* ===== TRANSPARENT CARD ===== */
 .form-section {
-    background: rgba(255,255,255,0.25);
-    backdrop-filter: blur(14px);
-    border-radius: 14px;
-    padding: 30px;
-    box-shadow: 0 25px 55px rgba(0,0,0,0.3);
-    border: 1px solid rgba(255,255,255,0.35);
-    animation: fadeIn 0.6s ease;
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 35px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    color: white;
+    animation: fadeIn 0.8s ease;
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(15px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {opacity:0; transform: translateY(20px);}
+    to {opacity:1; transform: translateY(0);}
 }
 
 h1 {
     text-align: center;
-    color: #fff;
-    margin-bottom: 22px;
+    margin-bottom: 20px;
 }
 
 /* ===== TABS ===== */
 .login-tabs {
     display: flex;
-    margin-bottom: 20px;
-    border-bottom: 2px solid rgba(255,255,255,0.4);
+    margin-bottom: 25px;
+    border-radius: 10px;
+    overflow: hidden;
 }
 
 .login-tab {
     flex: 1;
-    padding: 10px;
-    background: none;
+    padding: 12px;
+    cursor: pointer;
     border: none;
     font-weight: 600;
-    cursor: pointer;
-    color: rgba(255,255,255,0.7);
-    border-bottom: 3px solid transparent;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    transition: 0.3s;
 }
 
 .login-tab.active {
-    color: #fff;
-    border-bottom-color: #fff;
+    background: white;
+    color: #667eea;
 }
 
-.admin-badge {
-    background: #fff;
-    color: #333;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 0.7rem;
-    margin-left: 6px;
+.login-tab:hover {
+    background: rgba(255,255,255,0.3);
 }
 
-/* ===== FORMS ===== */
-.login-form { display: none; }
-.login-form.active { display: block; }
+/* ===== FORM ===== */
+.login-form {
+    display: none;
+    animation: fadeIn 0.4s ease;
+}
+
+.login-form.active {
+    display: block;
+}
 
 .form-group {
-    margin-bottom: 15px;
+    margin-bottom: 18px;
 }
 
-.form-group label {
-    display: block;
-    font-size: 0.85rem;
-    margin-bottom: 5px;
-    color: #fff;
-}
-
-.form-group input {
+input {
     width: 100%;
-    padding: 10px 12px;
-    border-radius: 6px;
+    padding: 12px;
+    border-radius: 10px;
     border: none;
-    background: rgba(255,255,255,0.9);
+    margin-top: 5px;
+    outline: none;
+    transition: 0.3s;
 }
 
-.form-group input:focus {
-    outline: none;
+input:focus {
+    box-shadow: 0 0 10px white;
+    transform: scale(1.02);
 }
 
 /* ===== BUTTON ===== */
-.btn-primary {
+.btn {
     width: 100%;
-    padding: 11px;
-    background: #1a73e8;
-    color: #fff;
+    padding: 12px;
+    border-radius: 10px;
     border: none;
-    border-radius: 6px;
-    font-weight: 600;
+    background: white;
+    color: #667eea;
+    font-weight: bold;
     cursor: pointer;
+    transition: 0.3s;
 }
 
-/* ===== TEXT ===== */
-.message {
-    margin-top: 14px;
-    font-size: 0.85rem;
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+}
+
+/* ===== LINKS ===== */
+.auth-link, .back-link {
     text-align: center;
+    margin-top: 15px;
+}
+
+a {
     color: #fff;
 }
 
-.message.success { color: #b6ffbf; }
-.message.error { color: #ffb6b6; }
-.message.warning { color: #ffe6a6; }
+/* ===== MESSAGE ===== */
+.message { text-align: center; margin-top: 10px; }
+.success { color: lightgreen; }
+.error { color: #ff6b6b; }
+.warning { color: #ffd166; }
 
-.auth-link,
-.back-link {
-    margin-top: 14px;
-    text-align: center;
-    font-size: 0.85rem;
-}
-
-.auth-link a,
-.back-link a {
-    color: #fff;
-    text-decoration: underline;
+.admin-badge {
+    background: white;
+    color: #667eea;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
 }
 </style>
 </head>
 
 <body>
 
-<!-- BACKGROUND SHAPES -->
-<div class="bg-shapes">
-    <span></span>
-    <span></span>
-    <span></span>
-</div>
+<!-- BLOBS -->
+<div class="blob blob1"></div>
+<div class="blob blob2"></div>
+<div class="blob blob3"></div>
+
+<!-- PARTICLES -->
+<script>
+for (let i = 0; i < 40; i++) {
+    const p = document.createElement("div");
+    p.className = "particle";
+    p.style.left = Math.random() * 100 + "vw";
+    p.style.top = Math.random() * 100 + "vh";
+    p.style.animationDuration = (5 + Math.random() * 10) + "s";
+    document.body.appendChild(p);
+}
+</script>
 
 <div class="container">
 <div class="form-section">
 
-<h1>Smart Attendance Login</h1>
+<h1>Smart Login</h1>
 
 <div class="login-tabs">
-    <button class="login-tab active" onclick="switchTab('student')">
-        Student Login
-    </button>
-    <button class="login-tab" onclick="switchTab('admin')">
-        Admin Login <span class="admin-badge">Admin</span>
-    </button>
+    <button class="login-tab active" data-tab="student">Student</button>
+    <button class="login-tab" data-tab="admin">Admin <span class="admin-badge">Admin</span></button>
 </div>
 
 <!-- STUDENT LOGIN -->
 <form id="studentLoginForm" class="login-form active">
     <div class="form-group">
-        <label>Roll Number</label>
-        <input type="text" id="studentRoll" placeholder="Enter your roll number" required>
+        <input type="text" id="studentRoll" placeholder="Roll Number" required>
     </div>
     <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="studentPassword" placeholder="Enter your password" required>
+        <input type="password" id="studentPassword" placeholder="Password" required>
     </div>
-    <button type="submit" class="btn-primary">Login</button>
+
+    <button class="btn">Login</button>
 </form>
 
 <!-- ADMIN LOGIN -->
 <form id="adminLoginForm" class="login-form">
     <div class="form-group">
-        <label>Admin ID</label>
-        <input type="text" id="adminId" required>
+        <input type="text" id="adminId" placeholder="Admin ID" required>
     </div>
     <div class="form-group">
-        <label>Admin Password</label>
-        <input type="password" id="adminPassword" required>
+        <input type="password" id="adminPassword" placeholder="Password" required>
     </div>
-    <button type="submit" class="btn-primary">Login as Admin</button>
+
+    <button class="btn">Login as Admin</button>
 </form>
 
 <div id="message" class="message"></div>
 
 <div class="auth-link">
-    New student? <a href="register.html">Register here</a>
+    <p>New student? <a href="register.html">Register</a></p>
 </div>
 
 <div class="back-link">
-    <a href="index.html">← Back to Home</a>
+    <a href="index.html">← Back</a>
 </div>
 
 </div>
@@ -258,25 +271,30 @@ h1 {
 <script src="app.js"></script>
 
 <script>
-function switchTab(tab) {
-    document.querySelectorAll('.login-tab').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.login-form').forEach(f => f.classList.remove('active'));
+// TAB FIX
+document.querySelectorAll('.login-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.login-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
 
-    if (tab === 'student') {
-        document.querySelectorAll('.login-tab')[0].classList.add('active');
-        document.getElementById('studentLoginForm').classList.add('active');
-    } else {
-        document.querySelectorAll('.login-tab')[1].classList.add('active');
-        document.getElementById('adminLoginForm').classList.add('active');
-    }
-}
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.login-form').forEach(f => f.classList.remove('active'));
 
-/* ===== STUDENT LOGIN (FULL LOGIC RESTORED) ===== */
+        if (tab === 'student') {
+            document.getElementById('studentLoginForm').classList.add('active');
+        } else {
+            document.getElementById('adminLoginForm').classList.add('active');
+        }
+    });
+});
+
+/* ===== ORIGINAL BACKEND CODE ===== */
+
+// Student Login
 document.getElementById('studentLoginForm').addEventListener('submit', async function(e) {
     e.preventDefault();
-
-    const rollNumber = studentRoll.value.trim();
-    const password = studentPassword.value;
+    const rollNumber = document.getElementById('studentRoll').value.trim();
+    const password = document.getElementById('studentPassword').value;
     const messageDiv = document.getElementById('message');
 
     messageDiv.textContent = 'Logging in...';
@@ -294,46 +312,47 @@ document.getElementById('studentLoginForm').addEventListener('submit', async fun
             window.location.href = 'face-login.html';
         }, 1500);
     } else {
-        if (result.approvalStatus === 'pending') {
-            messageDiv.className = 'message warning';
-            alert('⏳ Your registration is pending admin approval.');
-        } else if (result.approvalStatus === 'rejected') {
-            messageDiv.className = 'message error';
-            alert('❌ Your registration was rejected.');
-        } else {
-            messageDiv.className = 'message error';
-            alert('Login Failed: ' + result.message);
-        }
+        messageDiv.className = 'message error';
+        messageDiv.textContent = result.message;
     }
 });
 
-/* ===== ADMIN LOGIN (FULL LOGIC RESTORED) ===== */
-document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
+// Admin Login
+document.getElementById('adminLoginForm').addEventListener('submit', async function(e) {
     e.preventDefault();
 
-    const adminIdValue = adminId.value.trim();
-    const adminPasswordValue = adminPassword.value;
+    const adminId = document.getElementById('adminId').value.trim();
+    const adminPassword = document.getElementById('adminPassword').value;
     const messageDiv = document.getElementById('message');
 
     messageDiv.textContent = 'Logging in...';
 
-    if (adminIdValue === '0' && adminPasswordValue === '1234') {
-        messageDiv.className = 'message success';
-        messageDiv.textContent = 'Welcome Admin! Redirecting...';
+    try {
+        const resp = await fetch(`${getServerURL()}/teacher-login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: adminId, password: adminPassword })
+        });
 
-        sessionStorage.setItem('attendance_current_user', JSON.stringify({
-            id: 0,
-            name: 'Admin',
-            roll: '0'
-        }));
-        sessionStorage.setItem('userType', 'admin');
+        const result = await resp.json();
 
-        setTimeout(() => {
-            document.location.href = 'dashboard.html';
-        }, 500);
-    } else {
+        if (result.success) {
+            messageDiv.className = 'message success';
+            messageDiv.textContent = 'Welcome Admin';
+
+            sessionStorage.setItem('attendance_current_user', JSON.stringify(result.teacher));
+            sessionStorage.setItem('userType', 'admin');
+
+            setTimeout(() => {
+                window.location.href = 'dashboard.html';
+            }, 800);
+        } else {
+            messageDiv.className = 'message error';
+            messageDiv.textContent = result.message;
+        }
+    } catch {
         messageDiv.className = 'message error';
-        messageDiv.textContent = 'Invalid admin credentials!';
+        messageDiv.textContent = 'Server error';
     }
 });
 </script>

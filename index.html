@@ -1,22 +1,223 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Attendance System</title>
-    <link rel="stylesheet" href="styles.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Attendance</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Inter", sans-serif;
+}
+
+/* ===== BACKGROUND ===== */
+body {
+    height: 100vh;
+    background: #0f172a;
+    overflow: hidden;
+    color: white;
+}
+
+/* ===== GLOW ANIMATION ===== */
+.bg-glow {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, #667eea, transparent 70%);
+    top: 50%;
+    left: 70%;
+    transform: translate(-50%, -50%);
+    filter: blur(120px);
+    animation: pulse 6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%,100% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.2); }
+}
+
+/* ===== GRID LAYOUT ===== */
+.container {
+    display: flex;
+    height: 100vh;
+    align-items: center;
+    justify-content: space-between;
+    padding: 60px;
+    position: relative;
+    z-index: 1;
+}
+
+/* LEFT SIDE */
+.left {
+    max-width: 500px;
+}
+
+.left h1 {
+    font-size: 48px;
+    line-height: 1.2;
+    margin-bottom: 15px;
+}
+
+.left h1 span {
+    color: #667eea;
+}
+
+.left p {
+    color: #cbd5e1;
+    margin-bottom: 25px;
+    font-size: 16px;
+}
+
+/* BUTTONS */
+.buttons {
+    display: flex;
+    gap: 15px;
+}
+
+.btn {
+    padding: 12px 20px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+/* PRIMARY */
+.btn-primary {
+    background: #667eea;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #5a67d8;
+}
+
+/* SECONDARY */
+.btn-secondary {
+    border: 1px solid #667eea;
+    color: #667eea;
+}
+
+.btn-secondary:hover {
+    background: rgba(102,126,234,0.1);
+}
+
+/* RIGHT SIDE CARD */
+.right {
+    width: 400px;
+    height: 260px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* MOVING LIGHT */
+.right::before {
+    content: "";
+    position: absolute;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(120deg, transparent, rgba(102,126,234,0.4), transparent);
+    transform: rotate(25deg);
+    animation: shine 5s linear infinite;
+}
+
+@keyframes shine {
+    0% { transform: translateX(-100%) rotate(25deg); }
+    100% { transform: translateX(100%) rotate(25deg); }
+}
+
+/* MOCK CONTENT */
+.card-title {
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+.card-box {
+    background: rgba(255,255,255,0.05);
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+/* SERVER STATUS */
+.server-status {
+    margin-top: 20px;
+}
+
+/* MOBILE */
+@media(max-width: 768px) {
+    .container {
+        flex-direction: column;
+        text-align: center;
+        gap: 40px;
+    }
+
+    .right {
+        width: 100%;
+    }
+}
+</style>
 </head>
+
 <body>
-    <div class="container">
-        <div class="welcome-section">
-            <h1>Smart Attendance System</h1>
-            <p>Offline-First Student Attendance Management</p>
-            
-            <div class="button-group">
-                <a href="login.html" class="btn btn-primary">Login</a>
-                <a href="register.html" class="btn btn-secondary">Register</a>
-            </div>
-        </div>
+
+<div class="bg-glow"></div>
+
+<div class="container">
+
+<!-- LEFT -->
+<div class="left">
+    <h1>Smart <span>Attendance</span></h1>
+    <p>Track attendance with face recognition. Fast, secure, and offline-ready system built for modern institutions.</p>
+
+    <div class="buttons">
+        <a href="login.html" class="btn btn-primary">Login</a>
+        <a href="register.html" class="btn btn-secondary">Register</a>
     </div>
+
+    <div id="serverStatus" class="server-status" style="display:none;">
+        <div id="statusContent"></div>
+    </div>
+</div>
+
+<!-- RIGHT VISUAL -->
+<div class="right">
+    <div class="card-title">Live System Preview</div>
+    <div class="card-box">📷 Face Detection Active</div>
+    <div class="card-box">📊 Attendance Synced</div>
+    <div class="card-box">⚡ Offline Mode Ready</div>
+</div>
+
+</div>
+
+<script>
+// SERVER STATUS CHECK
+async function checkServerStatus() {
+    try {
+        const res = await fetch('/api/server/status');
+        const data = await res.json();
+
+        const box = document.getElementById('statusContent');
+
+        if (data.server.isHttps) {
+            box.innerHTML = "🔒 Secure HTTPS Enabled";
+        } else {
+            box.innerHTML = "⚠️ Use HTTPS for camera access";
+        }
+
+        document.getElementById('serverStatus').style.display = 'block';
+    } catch {}
+}
+
+window.onload = checkServerStatus;
+</script>
+
 </body>
 </html>

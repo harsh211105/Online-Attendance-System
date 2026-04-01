@@ -17,15 +17,37 @@
         }
 
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+            height: 100vh;
+            background: #0f172a;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             padding: clamp(1rem, 4vw, 2rem);
+            color: #e6eef8;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .bg-glow {
+            position: absolute;
+            width: 700px;
+            height: 700px;
+            background: radial-gradient(circle, #667eea, transparent 70%);
+            top: 40%;
+            left: 75%;
+            transform: translate(-50%, -50%);
+            filter: blur(120px);
+            animation: pulse 6s ease-in-out infinite;
+            z-index: 0;
+        }
+
+        @keyframes pulse {
+            0%,100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.2); }
         }
 
         .dashboard-container {
             max-width: 1200px;
             margin: 0 auto;
+            padding-top: 88px; /* leave space for fixed header */
         }
 
 /* ===== HEADER ===== */
@@ -34,11 +56,21 @@
     justify-content:space-between;
     align-items:center;
     margin-bottom:30px;
+    position:fixed;
+    top:16px;
+    left:50%;
+    transform:translateX(-50%);
+    width:calc(100% - 120px);
+    max-width:1200px;
+    padding:10px 0;
+    z-index:1200;
+    background: transparent;
 }
 
 .dashboard-header h1 {
-    color:white;
-    text-shadow:0 0 10px #00f2fe,0 0 20px #667eea;
+    color: #ffffff;
+    text-shadow: none;
+    z-index: 1;
 }
 
 .header-right {
@@ -47,15 +79,19 @@
     align-items:center;
 }
 
+/* Ensure nav buttons show even if other styles try to hide them */
+.header-right .nav-btn { display:inline-flex !important; }
+.logout-btn { position: relative; z-index: 4; }
+
 .user-info {
-    background:rgba(255,255,255,0.1);
+    background:rgba(255,255,255,0.12);
     padding:10px 15px;
     border-radius:20px;
-    color:white;
+    color:#0f172a;
 }
 
 .logout-btn {
-    background:#ff4d4d;
+    background:#ff6b6b;
     color:white;
     border:none;
     padding:10px 15px;
@@ -80,28 +116,31 @@
 
 /* ===== STATS ===== */
 .stat-card {
-    background:rgba(255,255,255,0.08);
-    backdrop-filter:blur(15px);
+    background:#ffffff;
     padding:20px;
-    border-radius:15px;
-    color:white;
+    border-radius:12px;
+    color:#0f172a;
     margin-bottom:20px;
+    box-shadow: 0 6px 18px rgba(17,24,39,0.06);
+    border: 1px solid rgba(15,23,42,0.04);
 }
 
 /* ===== SECTIONS ===== */
 .students-section {
-    background:rgba(255,255,255,0.08);
-    backdrop-filter:blur(15px);
-    padding:20px;
-    border-radius:15px;
+    background: #ffffff;
+    padding:18px;
+    border-radius:12px;
     margin-bottom:20px;
-    color:white;
+    color:#0f172a;
+    box-shadow: 0 6px 18px rgba(17,24,39,0.04);
+    border: 1px solid rgba(15,23,42,0.03);
 }
 
 .students-section h2 {
     margin-bottom:15px;
-    border-left:4px solid #00f2fe;
+    border-left:4px solid #60a5fa;
     padding-left:10px;
+    color:#0f172a;
 }
 
 /* ===== TABLE ===== */
@@ -110,50 +149,93 @@
     border-spacing:0 10px;
 }
 
-.students-table td, .students-table th {
+        .students-table td, .students-table th {
     padding:10px;
 }
 
+        /* Make header and nav match home page styles */
+        .container.dashboard-container {
+            padding: 60px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .dashboard-header h1 {
+            font-size: 48px;
+            line-height: 1.1;
+            color: #ffffff;
+            margin: 0;
+        }
+
+        .nav-btn {
+            padding: 10px 14px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            color: white;
+            display: inline-block;
+            transition: 0.25s ease;
+        }
+
+        .nav-attendance {
+            background: linear-gradient(135deg,#667eea,#764ba2);
+        }
+
+        .nav-start {
+            background: linear-gradient(135deg,#34d399,#10b981);
+        }
+
+        .nav-btn:hover { opacity: 0.95; transform: translateY(-2px); }
+
+        /* Ensure delete button is visible and styled like the home page */
+        .delete-btn {
+            background:#ff6b6b;
+            color:white;
+            border:none;
+            padding:8px 12px;
+            border-radius:8px;
+            cursor:pointer;
+            box-shadow: 0 6px 14px rgba(255,107,107,0.18);
+        }
+
+        .delete-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(255,107,107,0.22); }
+
 .students-table tbody tr {
-    background:rgba(255,255,255,0.05);
-    border-radius:10px;
-    transition:0.3s;
+    background: #ffffff;
+    border-radius:8px;
+    transition:0.18s ease;
+    box-shadow: 0 4px 12px rgba(2,6,23,0.04);
 }
 
 .students-table tbody tr:hover {
-    transform:scale(1.01);
-    box-shadow:0 0 20px rgba(0,242,254,0.3);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(2,6,23,0.06);
 }
 
 .student-image {
     width:45px;
     height:45px;
     border-radius:50%;
-    box-shadow:0 0 10px #00f2fe;
+    box-shadow: 0 6px 14px rgba(2,6,23,0.06);
 }
 
 .loading, .no-data {
-    color:white;
+    color:#334155;
 }
 
 </style>
 </head>
 <body>
 <!-- FLOATING BG -->
-<div class="bg-animation">
-    <span></span>
-    <span></span>
-    <span></span>
-    <span></span>
-</div>
+<div class="bg-glow"></div>
 
 <div class="container dashboard-container">
         <!-- Navigation Bar -->
         <div class="dashboard-header">
             <h1>Dashboard</h1>
             <div class="header-right">
-                <a href="attendance.html" style="background: #667eea; color: white; padding: 12px 24px; border: none; border-radius: 20px; cursor: pointer; font-weight: 700; font-size: 0.9rem; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); text-transform: uppercase; letter-spacing: 0.5px; text-decoration: none; display: inline-block;" onmouseover="this.style.background='#5568d3'; this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.4)';" onmouseout="this.style.background='#667eea'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.3)';">📋 Attendance</a>
-                <a href="attendance-control.html" style="background: #51cf66; color: white; padding: 12px 24px; border: none; border-radius: 20px; cursor: pointer; font-weight: 700; font-size: 0.9rem; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(81, 207, 102, 0.3); text-transform: uppercase; letter-spacing: 0.5px; text-decoration: none; display: inline-block;" onmouseover="this.style.background='#40c057'; this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 20px rgba(81, 207, 102, 0.4)';" onmouseout="this.style.background='#51cf66'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(81, 207, 102, 0.3)';">⏱️ Start Attendance</a>
+                <a href="attendance.html" class="nav-btn nav-attendance">📋 Attendance</a>
+                <a href="attendance-control.html" class="nav-btn nav-start">⏱️ Start Attendance</a>
                 <div class="user-info" id="userInfo">
                     Loading user info...
                 </div>
@@ -161,22 +243,33 @@
             </div>
         </div>
 
-        <div class="stats-grid">
-            <div class="stat-card">
-                <h3>Total Students</h3>
-                <div class="number" id="totalStudents">0</div>
+        <div class="main-column">
+            <div class="stats-grid">
+                <div class="stat-card total-card">
+                    <h3>Total Students</h3>
+                    <div class="number" id="totalStudents">0</div>
+                </div>
+            </div>
+
+            <div class="students-section">
+                <h2>Pending Approvals</h2>
+                <div id="pending-students" class="loading">Loading pending students...</div>
+            </div>
+
+            <div class="students-section">
+                <h2>Approved Students</h2>
+                <div id="studentsContent" class="loading">Loading students...</div>
             </div>
         </div>
-
-        <div class="students-section">
-            <h2>Pending Approvals</h2>
-            <div id="pending-students" class="loading">Loading pending students...</div>
-        </div>
-
-        <div class="students-section">
-            <h2>Approved Students</h2>
-            <div id="studentsContent" class="loading">Loading students...</div>
-        </div>
+        <!-- Sidebar preview (shows selected student photo/details) -->
+        <aside class="sidebar-card" id="sidebarPreview" style="display:none;">
+            <img id="previewImage" class="profile-image-large" src="assets/no-photo.svg" alt="Preview">
+            <div class="profile-meta">
+                <div id="previewName" style="font-weight:700; margin-bottom:6px;">Name</div>
+                <div id="previewRoll">Roll: -</div>
+                <div id="previewDate">Registered: -</div>
+            </div>
+        </aside>
     </div>
 
     <!-- Image Modal -->
@@ -439,6 +532,7 @@
                                 <button class="view-btn" onclick="viewStudent('${student.roll_number}')">
                                     View
                                 </button>
+                                <button class="delete-btn" onclick="deleteStudent('${student.roll_number}')" style="margin-left:8px; background:#ff6b6b; border:none; color:white; padding:8px 10px; border-radius:8px; cursor:pointer;">Delete</button>
                             </td>
                         </tr>
                     `;
@@ -500,12 +594,19 @@
                         }
                     }
                     
+                    // Update sidebar preview (desktop) and modal (optional)
+                    document.getElementById('previewImage').src = imageSrc;
+                    document.getElementById('previewName').textContent = student.name;
+                    document.getElementById('previewRoll').textContent = `Roll: ${student.roll}`;
+                    document.getElementById('previewDate').textContent = `Registered: ${new Date(student.registeredAt).toLocaleDateString()}`;
+                    const sidebar = document.getElementById('sidebarPreview');
+                    if (sidebar) sidebar.style.display = 'block';
+
+                    // Also populate modal for full view
                     document.getElementById('modalImage').src = imageSrc;
-                    
                     document.getElementById('modalName').textContent = student.name;
                     document.getElementById('modalRoll').textContent = `Roll: ${student.roll}`;
-                    document.getElementById('modalDate').textContent = 
-                        `Registered: ${new Date(student.registeredAt).toLocaleDateString()}`;
+                    document.getElementById('modalDate').textContent = `Registered: ${new Date(student.registeredAt).toLocaleDateString()}`;
                     document.getElementById('imageModal').style.display = 'block';
                 } else {
                     alert('Student not found');
@@ -516,16 +617,21 @@
             }
         }
 
-        // Close modal
+        // Close modal and hide sidebar preview
         function closeModal() {
-            document.getElementById('imageModal').style.display = 'none';
+            const modal = document.getElementById('imageModal');
+            const sidebar = document.getElementById('sidebarPreview');
+            const previewImage = document.getElementById('previewImage');
+            if (modal) modal.style.display = 'none';
+            if (sidebar) sidebar.style.display = 'none';
+            if (previewImage) previewImage.src = 'assets/no-photo.svg';
         }
 
-        // Close modal when clicking outside
+        // Close modal when clicking outside (also hide sidebar)
         window.onclick = function(event) {
             const modal = document.getElementById('imageModal');
             if (event.target === modal) {
-                modal.style.display = 'none';
+                closeModal();
             }
         };
 

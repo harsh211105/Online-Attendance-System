@@ -6,6 +6,7 @@ const https = require('https');
 const http = require('http');
 const forge = require('node-forge');
 const fs = require('fs');
+const faceBackend = require('./face-backend');
 require('dotenv').config();
 
 // Configure database mode
@@ -163,59 +164,41 @@ async function initializeDatabase() {
 // 1. Register Student
 app.post('/api/register', async (req, res) => {
   try {
-    const { name, roll, password, image, faceDescriptor } = req.body;
+    const { name, roll, password, image } = req.body;
     
-    // Validate inputs
     if (!name || !roll || !password || !image) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'All fields are required!' 
-      });
+      return res.status(400).json({ success: false, message: 'All fields required!' });
     }
 
-    try {
-      // Check if roll number already exists
-      const existing = await db.getAsync(
-        'SELECT * FROM students WHERE roll_number = ?',
-        [roll]
-      );
-      
-      if (existing) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Roll number already registered!' 
-        });
-      }
-      
-      // Insert new student with face descriptor (approval_status: 1 = approved for mock mode)
-      // convert image dataURL into raw bytes for BYTEA column
-      let imgData = image;
-      if (typeof imgData === 'string' && imgData.startsWith('data:')) {
-        imgData = Buffer.from(imgData.split(',')[1], 'base64');
-      }
-
-      await db.runAsync(
-        'INSERT INTO students (name, roll_number, password, image, face_descriptor, approval_status) VALUES (?, ?, ?, ?, ?, ?)',
-        [name, roll, password, imgData, faceDescriptor || null, 0]
-      );
-      
-      res.json({ 
-        success: true, 
-        message: `Student ${name} registered successfully! Waiting for admin approval.` 
-      });
-    } catch (dbError) {
-      console.error('Database error:', dbError.message);
-      res.status(500).json({ 
-        success: false, 
-        message: 'Database error: ' + dbError.message 
-      });
+    const existing = await db.getAsync('SELECT * FROM students WHERE roll_number = ?', [roll]);
+    if (existing) {
+      return res.status(400).json({ success: false, message: 'Roll number already registered!' });
     }
+
+    let imgData = image;
+    if (typeof imgData === 'string' && imgData.startsWith('data:')) {
+      imgData = Buffer.from(imgData.split(',')[1], 'base64');
+    }
+
+    await db.runAsync(
+      'INSERT INTO students (name, roll_number, password, image, approval_status) VALUES (?, ?, ?, ?, 0)',
+      [name, roll, password, imgData]
+    );
+
+    // Extract & save face descriptor (async)
+    faceBackend.getFaceDescriptor(image).then(descriptor => {
+      const descriptorJson = JSON.stringify(descriptor);
+      db.runAsync('UPDATE students SET face_descriptor = ? WHERE roll_number = ?', [descriptorJson, roll])
+        .catch(err => console.log('Face desc save failed:', err));
+    }).catch(err => console.log('Face extraction failed:', err.message));
+    
+    res.json({ 
+      success: true, 
+      message: `Student ${name} registered! Waiting admin approval.` 
+    });
   } catch (error) {
     console.error('Registration error:', error.message);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Registration failed: ' + error.message 
-    });
+    res.status(500).json({ success: false, message: 'Registration failed: ' + error.message });
   }
 });
 
@@ -462,6 +445,38 @@ app.get('/api/student/:roll', async (req, res) => {
 });
 
 // 5. Get Student Face Descriptor (for login verification)
+app.post('/api/face/verify', async (req, res) => {
+  try {
+    const { roll, image } = req.body;
+    
+    if (!roll || !image) {
+      return res.status(400).json({ success: false, message: 'roll and image required' });
+    }
+
+    const student = await db.getAsync('SELECT face_descriptor FROM students WHERE roll_number = ?', [roll]);
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Student not found' });
+    }
+
+    if (!student.face_descriptor) {
+      return res.status(403).json({ success: false, message: 'No face descriptor registered' });
+    }
+
+    const storedDesc = JSON.parse(student.face_descriptor);
+    const liveDesc = await faceBackend.getFaceDescriptor(image);
+    
+    const result = faceBackend.verifyFace(storedDesc, liveDesc);
+    
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (error) {
+    console.error('Face verify error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 app.get('/api/student/:roll/face', async (req, res) => {
   try {
     const { roll } = req.params;
@@ -472,13 +487,9 @@ app.get('/api/student/:roll/face', async (req, res) => {
     );
     
     if (!student) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Student not found.' 
-      });
+      return res.status(404).json({ success: false, message: 'Student not found.' });
     }
     
-    // Parse face descriptor if it exists
     let descriptor = null;
     if (student.face_descriptor) {
       try {
@@ -497,10 +508,7 @@ app.get('/api/student/:roll/face', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching face descriptor:', error.message);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to fetch face descriptor: ' + error.message 
-    });
+    res.status(500).json({ success: false, message: 'Failed to fetch face descriptor: ' + error.message });
   }
 });
 

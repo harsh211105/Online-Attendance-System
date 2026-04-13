@@ -191,37 +191,8 @@ class AuthManager {
         }
     }
 
-    /**
-     * Calculate distance between two face descriptors
-     * @param {Array} descriptor1 - First face descriptor
-     * @param {Array} descriptor2 - Second face descriptor
-     * @returns {number} - Distance (0-1, lower is more similar)
-     */
-    static calculateFaceDistance(descriptor1, descriptor2) {
-        if (!descriptor1 || !descriptor2 || descriptor1.length !== descriptor2.length) {
-            return 1; // Maximum distance if invalid
-        }
+    // Removed client-side face matching (now server-side)
 
-        let sum = 0;
-        for (let i = 0; i < descriptor1.length; i++) {
-            const diff = descriptor1[i] - descriptor2[i];
-            sum += diff * diff;
-        }
-        return Math.sqrt(sum);
-    }
-
-    /**
-     * Check if two faces match (based on distance threshold)
-     * @param {Array} descriptor1 - First face descriptor
-     * @param {Array} descriptor2 - Second face descriptor
-     * @param {number} threshold - Distance threshold (default 0.6 for strict matching)
-     * @returns {boolean} - True if faces match
-     */
-    static faceMatch(descriptor1, descriptor2, threshold = 0.6) {
-        const distance = this.calculateFaceDistance(descriptor1, descriptor2);
-        console.log(`Face distance: ${distance.toFixed(4)}, threshold: ${threshold}`);
-        return distance < threshold;
-    }
 
     /**
      * Get pending and rejected students (for admin)

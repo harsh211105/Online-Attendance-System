@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Face Verification - Smart Attendance System</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- Face-api.js CDN -->
-    <script async defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"></script>
+    <!-- Server-side face verification -->
+
     <style>
         .face-verification-container {
             max-width: 600px;
@@ -496,60 +496,9 @@
             }
         }
 
-        // Load face-api models
-        async function loadFaceApiModels() {
-            try {
-                console.log('Loading face-api models for verification...');
-                
-                // Check if faceapi is loaded
-                if (typeof faceapi === 'undefined') {
-                    console.warn('face-api.js not loaded yet, retrying...');
-                    setTimeout(loadFaceApiModels, 500);
-                    return;
-                }
+// Server-side verification - no models needed client-side
+        const modelsLoaded = true;
 
-                // Try loading from local first (for offline support)
-                let MODEL_URL = '/models/';
-                
-                try {
-                    console.log('Attempting to load models from local server:', MODEL_URL);
-                    
-                    await Promise.all([
-                        faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
-                        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-                        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-                    ]);
-
-                    console.log('✓ Models loaded from LOCAL server successfully');
-                    modelsLoaded = true;
-                    showFaceStatus('Models loaded (offline). Click "Start Camera" to begin verification.', 'info');
-                    
-                } catch (localError) {
-                    console.warn('Local models not available, falling back to CDN...');
-                    
-                    // Fallback to CDN
-                    MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
-                    console.log('Attempting to load models from CDN:', MODEL_URL);
-                    
-                    await Promise.all([
-                        faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
-                        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-                        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-                    ]);
-
-                    console.log('✓ Models loaded from CDN successfully');
-                    modelsLoaded = true;
-                    showFaceStatus('Models loaded (online). Click "Start Camera" to begin verification.', 'info');
-                }
-                
-            } catch (error) {
-                console.error('Error loading face-api models from both local and CDN:', error);
-                showFaceStatus('Error loading face recognition. Retrying...', 'error');
-                
-                // Retry loading
-                setTimeout(loadFaceApiModels, 2000);
-            }
-        }
 
         // Initialize page
         async function initFaceVerification() {
@@ -702,130 +651,56 @@
 
         // Verify face
         document.getElementById('verifyFaceBtn').addEventListener('click', async function() {
-            if (!storedFaceDescriptor) {
-                showFaceStatus('⚠️ SECURITY ERROR: Face descriptor is missing. Face verification is mandatory.', 'error');
-                console.error('SECURITY: Attempted to verify without stored face descriptor');
-                return;
-            }
-
-            // Check if models are loaded
-            if (!modelsLoaded) {
-                showFaceStatus('Face recognition models still loading... Please wait.', 'error');
+            if (!studentRoll) {
+                showFaceStatus('Error: No student roll found', 'error');
                 return;
             }
 
             try {
-                console.log('===== FACE VERIFICATION STARTED =====');
-                console.log('Stored descriptor type:', typeof storedFaceDescriptor);
-                console.log('Stored descriptor length:', storedFaceDescriptor.length);
-                console.log('Stored descriptor (first 5):', storedFaceDescriptor.slice(0, 5));
-                
-                showFaceStatus('Detecting face... <span class="loading-spinner"></span>', 'detecting');
+                console.log('===== SERVER FACE VERIFICATION =====');
+                showFaceStatus('Sending face to server... <span class="loading-spinner"></span>', 'detecting');
                 
                 const video = document.getElementById('faceVideo');
                 const canvas = document.getElementById('faceCanvas');
                 const ctx = canvas.getContext('2d');
 
-                // Wait for video to be ready and playing
                 if (video.videoWidth === 0 || video.videoHeight === 0) {
-                    console.warn('Video not ready yet, waiting...');
                     await new Promise(resolve => setTimeout(resolve, 500));
                 }
 
-                console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
-                console.log('Video readyState:', video.readyState);
-                console.log('Video paused:', video.paused);
-
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0);
+
+                const imageData = canvas.toDataURL('image/jpeg', 0.8);
                 
-                if (canvas.width === 0 || canvas.height === 0) {
-                    console.error('Canvas has 0 dimensions, video not ready');
-                    showFaceStatus('Video stream not ready. Please wait and try again.', 'error');
-                    return;
-                }
+                const response = await fetch('/api/face/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ roll: studentRoll, image: imageData })
+                });
 
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const result = await response.json();
+                console.log('Server verify result:', result);
 
-                // Detect face from VIDEO directly (more reliable than canvas)
-                console.log('Starting face detection from video directly...');
-                let detection;
-                
-                try {
-                    // Try video first (more reliable)
-                    detection = await faceapi
-                        .detectSingleFace(video)
-                        .withFaceLandmarks()
-                        .withFaceDescriptor();
-                    
-                    console.log('Detection from video successful');
-                } catch (videoDetectError) {
-                    console.warn('Video detection failed, trying canvas...', videoDetectError);
-                    
-                    // Fallback to canvas
-                    try {
-                        detection = await faceapi
-                            .detectSingleFace(canvas)
-                            .withFaceLandmarks()
-                            .withFaceDescriptor();
-                        
-                        console.log('Detection from canvas successful');
-                    } catch (canvasDetectError) {
-                        console.error('Both video and canvas detection failed:', canvasDetectError);
-                        detection = null;
-                    }
-                }
-
-                console.log('Detection result:', detection);
-
-                if (!detection) {
-                    showFaceStatus('No face detected. Please position your face clearly in the camera and ensure good lighting.', 'error');
-                    console.error('SECURITY: No face detected in video or canvas frame');
-                    return;
-                }
-
-                // Get current face descriptor
-                const liveDescriptor = Array.from(detection.descriptor);
-                console.log('Live descriptor type:', typeof liveDescriptor);
-                console.log('Live descriptor length:', liveDescriptor.length);
-                console.log('Live descriptor (first 5):', liveDescriptor.slice(0, 5));
-
-                // Compare faces
-                console.log('===== COMPARING FACES =====');
-                console.log('Threshold:', FACE_THRESHOLD);
-                const match = AuthManager.faceMatch(storedFaceDescriptor, liveDescriptor, FACE_THRESHOLD);
-                console.log('Face match result:', match);
-
-                if (match) {
-                    console.log('✓ FACE VERIFIED - Marking as match');
-                    showFaceStatus('✓ Face verified successfully! Logging you in...', 'success');
-                    
-                    // Stop camera
-                    if (faceStream) {
-                        faceStream.getTracks().forEach(track => track.stop());
-                    }
-                    
-                    setTimeout(() => {
-                        completeLogin();
-                    }, 1500);
+                if (result.success && result.match) {
+                    showFaceStatus('✓ Face verified by server!', 'success');
+                    if (faceStream) faceStream.getTracks().forEach(track => track.stop());
+                    setTimeout(completeLogin, 1500);
                 } else {
-                    console.log('❌ FACE DID NOT MATCH');
                     faceVerificationRetries--;
-                    
                     if (faceVerificationRetries > 0) {
-                        showFaceStatus('❌ Face does not match. Please try again.', 'error');
+                        showFaceStatus(`❌ No match (${result.distance?.toFixed(2) || 'N/A'}). ${faceVerificationRetries} retries left.`, 'error');
                         updateRetryCounter();
                     } else {
-                        showFaceStatus('❌ Face verification failed after 3 attempts. Access denied.', 'error');
+                        showFaceStatus('❌ Verification failed. Access denied.', 'error');
                         document.getElementById('failedSection').style.display = 'block';
                         document.getElementById('verifyFaceBtn').style.display = 'none';
-                        document.getElementById('cancelFaceBtn').style.display = 'none';
-                        console.error('SECURITY: Face verification failed 3 times for student:', studentRoll);
                     }
                 }
             } catch (error) {
-                showFaceStatus('Error during face verification: ' + error.message, 'error');
-                console.error('Face verification error:', error);
+                showFaceStatus('Server error: ' + error.message, 'error');
+                console.error('Verify error:', error);
             }
         });
 
